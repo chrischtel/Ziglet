@@ -5,7 +5,7 @@
 <!-- Replace chrischtel -->
 
 <!-- Add a visually appealing logo here (if you have one) -->
-<img src="logl.svg" alt="Ziglet Logo" width="200">
+<img src="docs/logo.svg" alt="Ziglet Logo" width="300">
 
 **Ziglet is a small, fast, and embeddable virtual machine written in Zig. Designed for performance and simplicity, Ziglet provides a versatile platform for running sandboxed code, scripting game logic, and more.  It's a playground for experimentation and a foundation for building lightweight, secure applications.**
 
