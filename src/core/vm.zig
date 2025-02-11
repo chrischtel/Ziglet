@@ -9,27 +9,12 @@
 const std = @import("std");
 const Error = @import("../error.zig").Error;
 const createError = @import("../error.zig").createError;
+const instruction_types = @import("../instruction/types.zig");
+const decoder = @import("../instruction/decoder.zig");
 
-/// Maximum number of registers
-pub const REGISTER_COUNT = 16;
-
-/// Basic instruction set for our first prototype
-pub const OpCode = enum(u8) {
-    HALT = 0,
-    LOAD = 1, // LOAD Rx, immediate_value
-    ADD = 2, // ADD Rx, Ry, Rz
-    SUB = 3, // SUB Rx, Ry, Rz
-};
-
-/// Represents a single instruction
-pub const Instruction = struct {
-    opcode: OpCode,
-    // For LOAD: dest_reg, immediate_value, unused
-    // For ADD/SUB: dest_reg, src_reg1, src_reg2
-    dest_reg: u8,
-    operand1: u32,
-    operand2: u32,
-};
+pub const Instruction = instruction_types.Instruction;
+pub const OpCode = instruction_types.OpCode;
+pub const REGISTER_COUNT = instruction_types.REGISTER_COUNT;
 
 /// The Virtual Machine state
 pub const VM = struct {
@@ -97,56 +82,12 @@ pub const VM = struct {
     }
 
     /// Execute a single instruction
-    fn executeInstruction(self: *VM, instruction: Instruction) !void {
-        // Validate register indices
-        if (instruction.dest_reg >= REGISTER_COUNT) {
-            return createError(
-                error.InvalidInstruction,
-                "executing instruction",
-                "Invalid destination register",
-                "Use registers 0 through 15",
-                null,
-            );
+    fn executeInstruction(self: *VM, inst: instruction_types.Instruction) !void {
+        if (inst.opcode == .HALT) {
+            self.running = false;
+            return;
         }
-
-        switch (instruction.opcode) {
-            .HALT => self.running = false,
-            .LOAD => {
-                self.registers[instruction.dest_reg] = @intCast(instruction.operand1);
-            },
-            .ADD => {
-                if (instruction.operand1 >= REGISTER_COUNT or
-                    instruction.operand2 >= REGISTER_COUNT)
-                {
-                    return createError(
-                        error.InvalidInstruction,
-                        "executing ADD instruction",
-                        "Invalid source register",
-                        "Use registers 0 through 15",
-                        null,
-                    );
-                }
-                self.registers[instruction.dest_reg] =
-                    self.registers[instruction.operand1] +
-                    self.registers[instruction.operand2];
-            },
-            .SUB => {
-                if (instruction.operand1 >= REGISTER_COUNT or
-                    instruction.operand2 >= REGISTER_COUNT)
-                {
-                    return createError(
-                        error.InvalidInstruction,
-                        "executing SUB instruction",
-                        "Invalid source register",
-                        "Use registers 0 through 15",
-                        null,
-                    );
-                }
-                self.registers[instruction.dest_reg] =
-                    self.registers[instruction.operand1] -
-                    self.registers[instruction.operand2];
-            },
-        }
+        try decoder.decode(inst, &self.registers);
     }
 
     /// Get the value of a register
