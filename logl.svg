@@ -1,0 +1,61 @@
+<svg width="400" height="400" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
+    <!-- Background Circle -->
+    <circle cx="200" cy="200" r="190" fill="#1a1a1a" />
+
+    <!-- Outer Ring with Gradient -->
+    <circle cx="200" cy="200" r="180"
+        stroke="url(#orangeGradient)"
+        stroke-width="4"
+        fill="none" />
+
+    <!-- Stylized Z shape -->
+    <path d="M140 120
+             L260 120
+             L140 280
+             L260 280"
+        stroke="url(#orangeGradient)"
+        stroke-width="12"
+        stroke-linecap="round"
+        fill="none" />
+
+    <!-- Circuit-like decorative lines -->
+    <path d="M100 200 L140 200 M260 200 L300 200"
+        stroke="#FF8C42"
+        stroke-width="4"
+        stroke-linecap="round" />
+
+    <!-- Additional circuit details -->
+    <path d="M120 160 L140 160 M260 160 L280 160"
+        stroke="#FF8C42"
+        stroke-width="3"
+        stroke-linecap="round" />
+
+    <path d="M120 240 L140 240 M260 240 L280 240"
+        stroke="#FF8C42"
+        stroke-width="3"
+        stroke-linecap="round" />
+
+    <!-- Decorative dots -->
+    <circle cx="140" cy="200" r="4" fill="#FF8C42" />
+    <circle cx="260" cy="200" r="4" fill="#FF8C42" />
+    <circle cx="140" cy="160" r="3" fill="#FF8C42" />
+    <circle cx="260" cy="160" r="3" fill="#FF8C42" />
+    <circle cx="140" cy="240" r="3" fill="#FF8C42" />
+    <circle cx="260" cy="240" r="3" fill="#FF8C42" />
+
+    <!-- Subtle glow effect -->
+    <circle cx="200" cy="200" r="180"
+        stroke="url(#orangeGradient)"
+        stroke-width="1"
+        fill="none"
+        opacity="0.3" />
+
+    <!-- Gradients definitions -->
+    <defs>
+        <!-- Orange gradient -->
+        <linearGradient id="orangeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#FF8C42" />
+            <stop offset="100%" style="stop-color:#FFB07C" />
+        </linearGradient>
+    </defs>
+</svg>
