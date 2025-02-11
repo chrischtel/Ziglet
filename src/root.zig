@@ -29,7 +29,6 @@ comptime {
     _ = instruction_set;
 }
 
-// Optional: Add tests that exercise the public API
 test {
     // This will run all tests in our modules
     std.testing.refAllDecls(@This());
