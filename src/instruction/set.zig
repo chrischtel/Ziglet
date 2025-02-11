@@ -31,6 +31,7 @@ pub const Instructions = struct {
         try validateRegister(dest);
         try validateRegister(src1);
         try validateRegister(src2);
+        // Get values from source registers and store result in dest register
         registers[dest] = registers[src1] + registers[src2];
     }
 
@@ -39,6 +40,7 @@ pub const Instructions = struct {
         try validateRegister(dest);
         try validateRegister(src1);
         try validateRegister(src2);
+        // Get values from source registers and store result in dest register
         registers[dest] = registers[src1] - registers[src2];
     }
 };

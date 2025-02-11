@@ -3,19 +3,19 @@ const std = @import("std");
 const ziglet = @import("ziglet");
 
 // Helper function to create instructions
-fn createProgram(a: u32, b: u32) []const ziglet.Instruction {
-    return &[_]ziglet.Instruction{
-        // Load first number into R1
-        .{ .opcode = .LOAD, .dest_reg = 1, .operand1 = a, .operand2 = 0 },
-        // Load second number into R2
-        .{ .opcode = .LOAD, .dest_reg = 2, .operand1 = b, .operand2 = 0 },
-        // Add them into R3
-        .{ .opcode = .ADD, .dest_reg = 3, .operand1 = 1, .operand2 = 2 },
-        // Subtract them into R4
-        .{ .opcode = .SUB, .dest_reg = 4, .operand1 = 1, .operand2 = 2 },
-        // Halt
-        .{ .opcode = .HALT, .dest_reg = 0, .operand1 = 0, .operand2 = 0 },
-    };
+fn createProgram(
+    allocator: *std.mem.Allocator,
+    a: u32,
+    b: u32,
+) ![]const ziglet.Instruction {
+    const num_insts = 5;
+    var program = try allocator.alloc(ziglet.Instruction, num_insts);
+    program[0] = .{ .opcode = .LOAD, .dest_reg = 1, .operand1 = a, .operand2 = 0 };
+    program[1] = .{ .opcode = .LOAD, .dest_reg = 2, .operand1 = b, .operand2 = 0 };
+    program[2] = .{ .opcode = .ADD, .dest_reg = 3, .operand1 = 1, .operand2 = 2 };
+    program[3] = .{ .opcode = .SUB, .dest_reg = 4, .operand1 = 1, .operand2 = 2 };
+    program[4] = .{ .opcode = .HALT, .dest_reg = 0, .operand1 = 0, .operand2 = 0 };
+    return program;
 }
 
 pub fn main() !void {
@@ -46,7 +46,8 @@ pub fn main() !void {
     defer vm.deinit();
 
     // Create and run program
-    const program = createProgram(a, b);
+    const program = try createProgram(@constCast(&allocator), a, b);
+    defer allocator.free(program);
     try vm.loadProgram(program);
     try vm.execute();
 

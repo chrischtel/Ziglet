@@ -74,8 +74,11 @@ pub const VM = struct {
             );
         }
 
+        std.debug.print("Executing program with {} instructions\n", .{self.program.len});
+
         self.running = true;
         while (self.running and self.pc < self.program.len) {
+            std.debug.print("Executing instruction at PC={}: {}\n", .{ self.pc, self.program[self.pc] });
             try self.executeInstruction(self.program[self.pc]);
             self.pc += 1;
         }
@@ -87,7 +90,7 @@ pub const VM = struct {
             self.running = false;
             return;
         }
-        try decoder.decode(inst, &self.registers);
+        try decoder.decode(inst, self.registers[0..REGISTER_COUNT]);
     }
 
     /// Get the value of a register

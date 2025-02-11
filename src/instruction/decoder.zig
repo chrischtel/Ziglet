@@ -13,22 +13,39 @@ pub fn decode(
 ) VMError!void {
     switch (instruction.opcode) {
         .HALT => return,
-        .LOAD => try Instructions.load(
-            registers,
-            instruction.dest_reg,
-            instruction.operand1,
-        ),
-        .ADD => try Instructions.add(
-            registers,
-            instruction.dest_reg,
-            @intCast(instruction.operand1),
-            @intCast(instruction.operand2),
-        ),
-        .SUB => try Instructions.sub(
-            registers,
-            instruction.dest_reg,
-            @intCast(instruction.operand1),
-            @intCast(instruction.operand2),
-        ),
+        .LOAD => {
+            std.debug.print("LOAD R{}, {}\n", .{ instruction.dest_reg, instruction.operand1 });
+            try Instructions.load(
+                registers,
+                instruction.dest_reg,
+                instruction.operand1,
+            );
+        },
+        .ADD => {
+            std.debug.print("ADD R{}, R{}, R{}\n", .{
+                instruction.dest_reg,
+                instruction.operand1,
+                instruction.operand2,
+            });
+            try Instructions.add(
+                registers,
+                instruction.dest_reg,
+                @intCast(instruction.operand1),
+                @intCast(instruction.operand2),
+            );
+        },
+        .SUB => {
+            std.debug.print("SUB R{}, R{}, R{}\n", .{
+                instruction.dest_reg,
+                instruction.operand1,
+                instruction.operand2,
+            });
+            try Instructions.sub(
+                registers,
+                instruction.dest_reg,
+                @intCast(instruction.operand1),
+                @intCast(instruction.operand2),
+            );
+        },
     }
 }
