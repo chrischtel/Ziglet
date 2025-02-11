@@ -174,26 +174,33 @@ pub const Error = struct {
 /// );
 /// ```
 pub fn createError(
-    err: VMError,
+    comptime err: VMError,
     operation: []const u8,
     details: []const u8,
     suggestion: []const u8,
     location: ?ErrorContext.Location,
-) Error {
-    return .{
-        .err = err,
-        .context = .{
-            .operation = operation,
-            .location = location,
-            .details = details,
-            .suggestion = suggestion,
-        },
-    };
+) VMError {
+    // Print error information
+    std.debug.print("\nError: {s}\n", .{@errorName(err)});
+    std.debug.print("During: {s}\n", .{operation});
+
+    // Print location if available
+    if (location) |loc| {
+        if (loc.file) |file| {
+            std.debug.print("In file: {s}\n", .{file});
+        }
+        std.debug.print("At line {d}, column {d}\n", .{ loc.line, loc.column });
+    }
+
+    std.debug.print("Details: {s}\n", .{details});
+    std.debug.print("Suggestion: {s}\n", .{suggestion});
+
+    return err;
 }
 
 test "error formatting" {
     const err = createError(
-        .InvalidInstruction,
+        error.InvalidInstruction,
         "test operation",
         "test details",
         "test suggestion",
