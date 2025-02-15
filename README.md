@@ -59,7 +59,7 @@ applications.**
         .optimize = optimize,
     });
 
-    exe.root_module.addImport("Ziglet", ziglet_dep.module("Ziglets"));
+    exe.root_module.addImport("Ziglet", ziglet_dep.module("Ziglet"));
    ```
 
 ## 📚 Examples
