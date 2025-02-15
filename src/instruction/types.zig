@@ -9,7 +9,16 @@ pub const OpCode = enum(u8) {
     LOAD = 1, // LOAD Rx, immediate_value
     ADD = 2, // ADD Rx, Ry, Rz
     SUB = 3, // SUB Rx, Ry, Rz
-    // We can add more opcodes here
+    MUL = 4, // Multiplication
+    DIV = 5, // Division
+    MOD = 6, // Modulo
+    CMP = 7, // Compare
+    JMP = 8, // Unconditional jump
+    JEQ = 9, // Jump if equal
+    JNE = 10, // Jump if not equal
+    JGT = 11, // Jump if greater than
+    PUSH = 12, // Push to stack
+    POP = 13, // Pop from stack
 };
 
 /// Represents a single instruction
