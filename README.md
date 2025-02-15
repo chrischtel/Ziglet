@@ -2,116 +2,154 @@
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![GitHub Stars](https://img.shields.io/github/stars/chrischtel/Ziglet?style=social)](https://github.com/chrischtel/Ziglet)
-<!-- Replace chrischtel -->
 
-<!-- Add a visually appealing logo here (if you have one) -->
 <img src="docs/logo.svg" alt="Ziglet Logo" width="300">
 
-**Ziglet is a small, fast, and embeddable virtual machine written in Zig. Designed for performance and simplicity, Ziglet provides a versatile platform for running sandboxed code, scripting game logic, and more.  It's a playground for experimentation and a foundation for building lightweight, secure applications.**
+**Ziglet is a small, fast, and embeddable virtual machine written in Zig.
+Designed for performance and simplicity, Ziglet provides a versatile platform
+for running sandboxed code, scripting game logic, and more. It's a playground
+for experimentation and a foundation for building lightweight, secure
+applications.**
 
-## ✨ Key Features
+## ✨ Current Features
 
-*   **Minimal Core:** A lean instruction set for maximum efficiency and ease of understanding.
-*   **High Performance:** Leverages Zig's capabilities for near-native execution speeds.
-*   **Easy Embeddability:** Simple C API for seamless integration into existing projects.
-*   **Secure Design:** Prioritizes security to prevent common VM vulnerabilities and ensure safe execution of untrusted code.
-*   **Extensible Architecture:** Designed for easy addition of custom instructions and features.
+- **Core Architecture:**
+  - 16 general-purpose registers
+  - 64KB managed memory space
+  - Stack-based operations
+  - Comprehensive instruction set
+
+- **Instruction Set:**
+  - Arithmetic operations (ADD, SUB, MUL, DIV, MOD)
+  - Memory operations (LOAD, STORE, MEMCPY)
+  - Control flow (JMP, JEQ, JNE, JGT, JLT, JGE)
+  - Stack operations (PUSH, POP)
+  - Comparison operations (CMP)
+
+- **Debug & Optimization:**
+  - Debug mode with instruction tracing
+  - Hot path detection
+  - Instruction caching
+  - Execution statistics
+  - Detailed runtime information
+
+- **Memory Management:**
+  - Bounds checking
+  - Memory protection
+  - Safe memory access
+  - Resource cleanup
+
+- **Error Handling:**
+  - Detailed error contexts
+  - Location tracking
+  - Actionable suggestions
+  - Comprehensive error types
 
 ## 🚀 Getting Started
 
-While Ziglet is still under active development, you can explore the codebase and contribute to its evolution:
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/chrischtel/Ziglet.git
+   cd Ziglet
+   ```
 
-1.  **Clone the repository:**
-    ```bash
-    git clone https://github.com/chrischtel/Ziglet.git
-    cd Ziglet
-    ```
+2. **Build the project:**
+   ```bash
+   zig build
+   ```
 
-2.  **Build the project:**
-    ```bash
-    zig build
-    ```
+3. **Run the tests:**
+   ```bash
+   zig build test
+   ```
 
-3.  **Run the tests:**
-    ```bash
-    zig build test
-    ```
+4. **Run examples:**
+   ```bash
+   # Basic arithmetic
+   zig build run-calculator
 
-4.  **Explore the examples (coming soon):**
-    *   Simple "Hello, World!" program
-    *   Basic arithmetic operations
-    *   (More examples demonstrating different features will be added soon)
+   # With debug output
+   zig build run-calculator -- --debug
+   ```
 
-## 💡 Why Ziglet?
+## 📚 Examples
 
-Ziglet aims to provide a "Swiss Army Knife" VM solution, offering:
+### Basic Arithmetic
 
-*   **Performance:** Achieve competitive performance compared to other lightweight VMs, especially in resource-constrained environments.
-*   **Flexibility:** Adaptable to a wide range of applications, from embedded systems to game development.
-*   **Learnability:** A clean and well-documented codebase that serves as an excellent learning resource for understanding VM internals and Zig programming.
-*   **Security:** Build secure and isolated environments for running untrusted code.
+```zig
+const program = &[_]Instruction{
+    .{ .opcode = .LOAD, .dest_reg = 1, .operand1 = 5, .operand2 = 0 },
+    .{ .opcode = .LOAD, .dest_reg = 2, .operand1 = 10, .operand2 = 0 },
+    .{ .opcode = .ADD, .dest_reg = 3, .operand1 = 1, .operand2 = 2 },
+    .{ .opcode = .HALT, .dest_reg = 0, .operand1 = 0, .operand2 = 0 },
+};
+```
 
-## 🎯 Potential Use Cases
+### Memory Operations
 
-Ziglet can be used in a variety of scenarios:
+```zig
+const program = &[_]Instruction{
+    .{ .opcode = .LOAD, .dest_reg = 1, .operand1 = 42, .operand2 = 0 },
+    .{ .opcode = .STORE, .dest_reg = 1, .operand1 = 100, .operand2 = 0 },
+    .{ .opcode = .LOAD_MEM, .dest_reg = 2, .operand1 = 100, .operand2 = 0 },
+    .{ .opcode = .HALT, .dest_reg = 0, .operand1 = 0, .operand2 = 0 },
+};
+```
 
-*   **Game Scripting:** Embed Ziglet into a game engine to enable scripting of game logic and AI. Imagine creating complex game behaviors with a lightweight and performant scripting language.
-*   **Embedded Systems:** Run small, isolated applications on resource-constrained embedded devices. Ziglet's small footprint and performance make it ideal for this purpose.
-*   **Sandboxing Untrusted Code:** Execute untrusted code in a safe and isolated environment. Protect your system from malicious code by running it within Ziglet's secure sandbox.
-*   **Educational Tool:** Use Ziglet as a learning tool for understanding VM concepts and Zig programming. The clear and concise codebase makes it easy to learn and experiment.
-*   **Custom Language Runtimes:** Build your own domain-specific language (DSL) on top of Ziglet. Define your own instruction set and create a custom runtime environment tailored to your specific needs.
+### Control Flow
 
-## 🗺️ Roadmap
+```zig
+const program = &[_]Instruction{
+    .{ .opcode = .LOAD, .dest_reg = 1, .operand1 = 0, .operand2 = 0 },
+    .{ .opcode = .CMP, .dest_reg = 1, .operand1 = 5, .operand2 = 0 },
+    .{ .opcode = .JLT, .dest_reg = 0, .operand1 = 1, .operand2 = 0 },
+    .{ .opcode = .HALT, .dest_reg = 0, .operand1 = 0, .operand2 = 0 },
+};
+```
 
-Ziglet's development is guided by the following roadmap:
+## 🎯 Current Use Cases
 
-*   **Core VM Foundation:**
-    *   Defining and implementing the core instruction set architecture (ISA).
-    *   Developing the execution engine and memory management system.
-    *   Establishing a robust testing framework.
-*   **Embeddability and API:**
-    *   Creating a stable and well-documented C API for seamless integration into other projects.
-    *   Providing examples of embedding Ziglet into C/C++ and other languages.
-*   **Performance Optimization:**
-    *   Profiling and optimizing the VM for maximum speed and efficiency.
-    *   Exploring techniques such as JIT compilation and custom memory allocators.
-*   **Feature Expansion:**
-    *   Adding support for floating-point numbers, strings, and other data types.
-    *   Implementing debugging features and tools.
-    *   Extending the instruction set with new operations and capabilities.
-*   **Security Enhancements:**
-    *   Implementing advanced security features such as memory protection and code isolation.
-    *   Conducting security audits and penetration testing.
+- **Game Scripting:** Simple game logic and AI behaviors
+- **Educational Tool:** Learn about VM internals and Zig
+- **Code Sandboxing:** Safe execution of untrusted code
+- **Embedded Systems:** Lightweight computation on constrained devices
 
-## 📣 Call for Early Adopters
+## 🗺️ Current Development Status
 
-We are looking for early adopters to help us shape the future of Ziglet! If you are interested in:
-
-*   Experimenting with a minimalist VM in Zig
-*   Contributing to an open-source project
-*   Providing feedback and suggestions
-
-Then we encourage you to:
-
-*   Clone the repository
-*   Join our [Discord server](YOUR_DISCORD_LINK) (coming soon)
-*   Submit issues and pull requests
+- [x] Core VM implementation
+- [x] Basic instruction set
+- [x] Memory management
+- [x] Stack operations
+- [x] Debug support
+- [x] Error handling
+- [ ] JIT compilation
+- [ ] Garbage collection
+- [ ] Threading support
+- [ ] Network operations
+- [ ] File system access
+- [ ] Standard library
 
 ## 🤝 Contributing
 
-We welcome contributions from the Zig community! Check out our [Contribution Guidelines](CONTRIBUTING.md) (coming soon) for more information on how to get involved.
+We welcome contributions! Current focus areas:
+
+- Additional instruction set features
+- Performance optimizations
+- Documentation improvements
+- Example programs
+- Test coverage
 
 ## 📄 License
 
-Ziglet is licensed under the [MIT License](LICENSE).
+Ziglet is licensed under the [BSD 3-Clause](LICENSE).
 
 ## 🙏 Acknowledgements
 
-*   The Zig programming language and its community.
-*   (Add any other acknowledgements here)
+- The Zig programming language and community
+- Contributors and early adopters
 
 ---
 
-**Stay tuned for more updates!**
-
-**Follow us on [Twitter](YOUR_TWITTER_LINK) (coming soon) for the latest news and announcements.**
+**Project Status:** Active Development\
+**Latest Update:** 15.02.2025\
+**Stability:** Beta
