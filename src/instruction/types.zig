@@ -1,5 +1,7 @@
 //! Common types used for instruction handling
 
+const std = @import("std");
+
 /// Maximum number of registers
 pub const REGISTER_COUNT = 16;
 
@@ -21,14 +23,28 @@ pub const OpCode = enum(u8) {
     JGE = 13, // Added JGE
     PUSH = 14,
     POP = 15,
+    STORE = 16, // Store value to memory
+    LOAD_MEM = 17, // Load value from memory
+    MEMCPY = 18, // Copy memory region
 };
 
-/// Represents a single instruction
 pub const Instruction = struct {
     opcode: OpCode,
-    // For LOAD: dest_reg, immediate_value, unused
-    // For ADD/SUB: dest_reg, src_reg1, src_reg2
     dest_reg: u8,
     operand1: u32,
     operand2: u32,
+
+    pub fn format(
+        self: Instruction,
+        comptime _: []const u8,
+        _: std.fmt.FormatOptions,
+        writer: anytype,
+    ) !void {
+        try writer.print("{s} dest_reg={}, op1={}, op2={}", .{
+            @tagName(self.opcode),
+            self.dest_reg,
+            self.operand1,
+            self.operand2,
+        });
+    }
 };

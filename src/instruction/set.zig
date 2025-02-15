@@ -188,4 +188,81 @@ pub const Instructions = struct {
 
         registers[dest] = registers[src1] % registers[src2];
     }
+
+    /// MEMCPY - Copy memory region
+    pub fn memcpy(vm: *VM, dest: u32, src: u32, len: u32) VMError!void {
+        if (dest >= vm.memory_size or src >= vm.memory_size or
+            dest + len > vm.memory_size or src + len > vm.memory_size)
+        {
+            return createError(
+                error.MemoryAccessViolation,
+                "memory copy operation",
+                "Memory access out of bounds",
+                "Ensure addresses and length are within memory bounds",
+                null,
+            );
+        }
+
+        @memcpy(
+            vm.memory[dest..][0..len],
+            vm.memory[src..][0..len],
+        );
+    }
+
+    /// STORE - Store value to memory
+    pub fn store(vm: *VM, reg: u8, address: u32) VMError!void {
+        try validateRegister(reg);
+        if (address >= vm.memory_size - 3) {
+            return createError(
+                error.MemoryAccessViolation,
+                "store operation",
+                "Memory address out of bounds",
+                "Use address within memory bounds",
+                null,
+            );
+        }
+
+        const value = vm.registers[reg];
+        @memcpy(vm.memory[address..][0..4], std.mem.asBytes(&value));
+    }
+
+    /// LOAD_MEM - Load value from memory to register
+    pub fn loadMem(vm: *VM, reg: u8, address: u32) VMError!void {
+        try validateRegister(reg);
+        if (address >= vm.memory_size - 3) {
+            return createError(
+                error.MemoryAccessViolation,
+                "load operation",
+                "Memory address out of bounds",
+                "Use address within memory bounds",
+                null,
+            );
+        }
+
+        var value: u32 = undefined;
+        @memcpy(std.mem.asBytes(&value), vm.memory[address..][0..4]);
+        vm.registers[reg] = value;
+    }
+
+    /// CALL address - Call subroutine at address
+    pub fn call(vm: *VM, address: u32) VMError!void {
+        try validateJumpTarget(vm, address);
+        try vm.stack.append(@intCast(vm.pc + 1)); // Save return address
+        vm.pc = address - 1;
+    }
+
+    /// RET - Return from subroutine
+    pub fn ret(vm: *VM) VMError!void {
+        if (vm.stack.items.len == 0) {
+            return createError(
+                error.InvalidInstruction,
+                "return operation",
+                "Stack is empty, no return address",
+                "Ensure CALL before RET",
+                null,
+            );
+        }
+
+        vm.pc = vm.stack.pop();
+    }
 };

@@ -101,6 +101,23 @@ pub const VMError = error{
     /// VM configuration contains invalid or incompatible settings
     /// This occurs during VM initialization with invalid configuration
     InvalidConfiguration,
+
+    StackUnderflow,
+    InvalidFunctionCall,
+    InvalidMemoryAccess,
+    InvalidAlignment,
+    SecurityViolation,
+};
+
+pub const SecurityConfig = struct {
+    /// Maximum allowed memory access
+    max_memory: usize,
+    /// Maximum allowed stack depth
+    max_stack_depth: usize,
+    /// Maximum instructions per execution
+    max_instructions: usize,
+    /// Allow self-modifying code
+    allow_self_modify: bool,
 };
 
 /// Combines an error with its detailed context to provide comprehensive

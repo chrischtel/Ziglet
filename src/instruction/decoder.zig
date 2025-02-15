@@ -156,5 +156,43 @@ pub fn decode(
                 instruction.dest_reg,
             );
         },
+
+        .STORE => {
+            std.debug.print("STORE R{}, {}\n", .{
+                instruction.dest_reg,
+                instruction.operand1,
+            });
+            try Instructions.store(
+                vm,
+                instruction.dest_reg,
+                instruction.operand1,
+            );
+        },
+
+        .LOAD_MEM => {
+            std.debug.print("LOAD_MEM R{}, {}\n", .{
+                instruction.dest_reg,
+                instruction.operand1,
+            });
+            try Instructions.loadMem(
+                vm,
+                instruction.dest_reg,
+                instruction.operand1,
+            );
+        },
+
+        .MEMCPY => {
+            std.debug.print("MEMCPY {}, {}, {}\n", .{
+                instruction.dest_reg,
+                instruction.operand1,
+                instruction.operand2,
+            });
+            try Instructions.memcpy(
+                vm,
+                instruction.dest_reg,
+                instruction.operand1,
+                instruction.operand2,
+            );
+        },
     }
 }
