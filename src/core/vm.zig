@@ -34,9 +34,72 @@ pub const VM = struct {
     sp: usize,
     /// Comparison flag for conditional jumps
     cmp_flag: i8, // -1: less, 0: equal, 1: greater
+    /// Memory for the VM
+    memory: []u8,
+    /// Memory size in bytes
+    memory_size: usize,
+    /// Debug mode flag
+    debug_mode: bool,
+    /// Instruction cache
+    instruction_cache: std.AutoHashMap(usize, Instruction),
+    /// Hot path detection
+    execution_count: std.AutoHashMap(usize, usize),
 
+    pub fn optimizeHotPaths(self: *VM) !void {
+        // Identify frequently executed code paths
+        var it = self.execution_count.iterator();
+        while (it.next()) |entry| {
+            if (entry.value_ptr.* > 1000) {
+                // Cache this instruction
+                try self.instruction_cache.put(entry.key_ptr.*, self.program[entry.key_ptr.*]);
+            }
+        }
+    }
+
+    /// Debug information
+    pub const DebugInfo = struct {
+        instruction_count: usize,
+        last_instruction: ?Instruction,
+        stack_depth: usize,
+
+        pub fn format(
+            self: DebugInfo,
+            comptime _: []const u8,
+            _: std.fmt.FormatOptions,
+            writer: anytype,
+        ) !void {
+            try writer.print(
+                "Instructions executed: {}\n" ++
+                    "Stack depth: {}\n",
+                .{
+                    self.instruction_count,
+                    self.stack_depth,
+                },
+            );
+
+            if (self.last_instruction) |inst| {
+                try writer.print("Last instruction: {}\n", .{inst});
+            }
+        }
+    };
+
+    pub fn getDebugInfo(self: *VM) DebugInfo {
+        return .{
+            .instruction_count = self.pc,
+            .last_instruction = if (self.pc > 0) self.program[self.pc - 1] else null,
+            .stack_depth = self.stack.items.len,
+        };
+    }
+    /// Initialize a new VM
     /// Initialize a new VM
     pub fn init(allocator: std.mem.Allocator) !*VM {
+        const default_memory_size = 1024 * 64; // 64KB
+        const memory = try allocator.alloc(u8, default_memory_size);
+
+        // Initialize hashmaps for optimization
+        const instruction_cache = std.AutoHashMap(usize, Instruction).init(allocator);
+        const execution_count = std.AutoHashMap(usize, usize).init(allocator);
+
         const vm = try allocator.create(VM);
         vm.* = VM{
             .registers = [_]u32{0} ** REGISTER_COUNT,
@@ -47,13 +110,24 @@ pub const VM = struct {
             .stack = std.ArrayList(u32).init(allocator),
             .sp = 0,
             .cmp_flag = 0,
+            .memory = memory,
+            .memory_size = default_memory_size,
+            .debug_mode = false,
+            .instruction_cache = instruction_cache,
+            .execution_count = execution_count,
         };
         return vm;
     }
-
+    /// Enable or disable debug mode
+    pub fn setDebugMode(self: *VM, enable: bool) void {
+        self.debug_mode = enable;
+    }
     /// Clean up VM resources
     pub fn deinit(self: *VM) void {
+        self.allocator.free(self.memory);
         self.stack.deinit();
+        self.instruction_cache.deinit();
+        self.execution_count.deinit();
         self.allocator.destroy(self);
     }
 
@@ -84,13 +158,29 @@ pub const VM = struct {
             );
         }
 
-        std.debug.print("Executing program with {} instructions\n", .{self.program.len});
+        if (self.debug_mode) {
+            std.debug.print("Executing program with {} instructions\n", .{self.program.len});
+        }
 
         self.running = true;
         while (self.running and self.pc < self.program.len) {
-            std.debug.print("Executing instruction at PC={}: {}\n", .{ self.pc, self.program[self.pc] });
+            if (self.debug_mode) {
+                std.debug.print("Executing instruction at PC={}: {}\n", .{ self.pc, self.program[self.pc] });
+            }
+
+            try self.execution_count.put(self.pc, (self.execution_count.get(self.pc) orelse 0) + 1);
+
             try self.executeInstruction(self.program[self.pc]);
             self.pc += 1;
+
+            if (self.pc % 1000 == 0) {
+                try self.optimizeHotPaths();
+            }
+        }
+
+        // Print debug info at the end if in debug mode
+        if (self.debug_mode) {
+            std.debug.print("\nDebug Info:\n{}", .{self.getDebugInfo()});
         }
     }
 
