@@ -62,6 +62,8 @@ applications.**
     exe.root_module.addImport("Ziglet", ziglet_dep.module("Ziglet"));
    ```
 
+3. **Check out the examples under `examples/`**
+
 ## 📚 Examples
 
 ### Basic Arithmetic
