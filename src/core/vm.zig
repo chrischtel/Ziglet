@@ -28,6 +28,12 @@ pub const VM = struct {
     allocator: std.mem.Allocator,
     /// Is the VM currently running?
     running: bool,
+    /// Stack for the VM
+    stack: std.ArrayList(u32),
+    /// Stack pointer
+    sp: usize,
+    /// Comparison flag for conditional jumps
+    cmp_flag: i8, // -1: less, 0: equal, 1: greater
 
     /// Initialize a new VM
     pub fn init(allocator: std.mem.Allocator) !*VM {
@@ -38,12 +44,16 @@ pub const VM = struct {
             .program = &[_]Instruction{},
             .allocator = allocator,
             .running = false,
+            .stack = std.ArrayList(u32).init(allocator),
+            .sp = 0,
+            .cmp_flag = 0,
         };
         return vm;
     }
 
     /// Clean up VM resources
     pub fn deinit(self: *VM) void {
+        self.stack.deinit();
         self.allocator.destroy(self);
     }
 
@@ -90,7 +100,7 @@ pub const VM = struct {
             self.running = false;
             return;
         }
-        try decoder.decode(inst, self.registers[0..REGISTER_COUNT]);
+        try decoder.decode(inst, self);
     }
 
     /// Get the value of a register

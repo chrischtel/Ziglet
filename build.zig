@@ -34,6 +34,7 @@ pub fn build(b: *std.Build) void {
     const examples = [_]struct { name: []const u8, path: []const u8 }{
         .{ .name = "simple", .path = "examples/simple.zig" },
         .{ .name = "calculator", .path = "examples/calculator.zig" },
+        .{ .name = "jump", .path = "examples/jump_instructions.zig" },
     };
 
     // Create an example step

@@ -17,8 +17,10 @@ pub const OpCode = enum(u8) {
     JEQ = 9, // Jump if equal
     JNE = 10, // Jump if not equal
     JGT = 11, // Jump if greater than
-    PUSH = 12, // Push to stack
-    POP = 13, // Pop from stack
+    JLT = 12,
+    JGE = 13, // Added JGE
+    PUSH = 14,
+    POP = 15,
 };
 
 /// Represents a single instruction
