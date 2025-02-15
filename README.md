@@ -49,27 +49,18 @@ applications.**
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/chrischtel/Ziglet.git
+   zig fetch--save git+github.com/chrischtel/Ziglet.git
    cd Ziglet
    ```
 
-2. **Build the project:**
-   ```bash
-   zig build
-   ```
+2. **Add Ziglet to your project**
+   ```zig
+    const ziglet_dep = b.dependency("Ziglet", .{
+        .target = target,
+        .optimize = optimize,
+    });
 
-3. **Run the tests:**
-   ```bash
-   zig build test
-   ```
-
-4. **Run examples:**
-   ```bash
-   # Basic arithmetic
-   zig build run-calculator
-
-   # With debug output
-   zig build run-calculator -- --debug
+    exe.root_module.addImport("Ziglet", ziglet_dep.module("Ziglets"));
    ```
 
 ## 📚 Examples
