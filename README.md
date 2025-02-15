@@ -47,10 +47,9 @@ applications.**
 
 ## 🚀 Getting Started
 
-1. **Clone the repository:**
+1. **Fetch Ziglet using Zigs Package Manager**
    ```bash
    zig fetch--save git+github.com/chrischtel/Ziglet.git
-   cd Ziglet
    ```
 
 2. **Add Ziglet to your project**
