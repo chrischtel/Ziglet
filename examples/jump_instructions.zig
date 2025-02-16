@@ -66,7 +66,6 @@ pub fn main() !void {
     defer allocator.free(program);
 
     try vm.loadProgram(program);
-    vm.setDebugMode(false);
 
     std.debug.print("\nStarting counter loop to {}\n", .{target});
     std.debug.print("Executing program...\n\n", .{});
