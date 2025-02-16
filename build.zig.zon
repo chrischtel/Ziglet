@@ -2,7 +2,12 @@
     .name = "Ziglet",
     .version = "0.0.0",
 
-    .dependencies = .{},
+    .dependencies = .{
+        .nexlog = .{
+            .url = "git+https://github.com/chrischtel/nexlog?ref=develop#5f1580052c4b310d353c792326f8f1340ad86a3a",
+            .hash = "1220c760f31f4e218e63c0d9a526d856c405195df90a448395184950704e9128610a",
+        },
+    },
 
     .paths = .{
         "build.zig",
