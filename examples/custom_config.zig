@@ -35,8 +35,8 @@ pub fn main() !void {
             .log_file_path = "logs/custom_vm.log", // Custom log file for this VM
             .max_file_size = 10 * 1024 * 1024,
             .max_rotated_files = 5,
-            .enable_rotation = true,
-            .enable_async = true,
+            .enable_rotation = false,
+            .enable_async = false,
             .enable_metadata = true,
         },
     };

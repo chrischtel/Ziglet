@@ -42,9 +42,9 @@ pub fn main() !void {
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
-    var vm = try ziglet.VM.initWithConfig(allocator, .{
-        .debug_mode = true,
-    });
+    var vm = try ziglet.VM.initWithConfig(allocator, .{ .debug_mode = true, .log_config = .{
+        .log_file_path = "logs/calc.log",
+    } });
     defer vm.deinit();
 
     // Create and run program
