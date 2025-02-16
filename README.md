@@ -143,5 +143,5 @@ Ziglet is licensed under the [BSD 3-Clause](LICENSE).
 ---
 
 **Project Status:** Active Development\
-**Latest Update:** 15.02.2025\
+**Latest Update:** 16.02.2025\
 **Stability:** Beta
