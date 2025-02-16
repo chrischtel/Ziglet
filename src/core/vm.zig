@@ -1,14 +1,11 @@
 //! First prototype of the Ziglet VM
 //! Target: Execute basic arithmetic operations using registers
-//! Example program we want to execute:
-//!   LOAD R1, 5    ; Load value 5 into register 1
-//!   LOAD R2, 10   ; Load value 10 into register 2
-//!   ADD R3, R1, R2 ; Add R1 and R2, store in R3
-//!   HALT          ; Stop execution
 
 const std = @import("std");
-const Error = @import("../error.zig").Error;
-const createError = @import("../error.zig").createError;
+const error_mod = @import("../error.zig");
+const VMError = error_mod.VMError;
+const ErrorContext = error_mod.ErrorContext;
+const createRuntimeError = error_mod.createRuntimeError;
 const instruction_types = @import("../instruction/types.zig");
 const decoder = @import("../instruction/decoder.zig");
 const nexlog = @import("nexlog");
@@ -17,11 +14,11 @@ pub const Instruction = instruction_types.Instruction;
 pub const OpCode = instruction_types.OpCode;
 pub const REGISTER_COUNT = instruction_types.REGISTER_COUNT;
 
+/// The configuration for a VM instance.
 pub const VMConfig = struct {
-    memory_size: usize = 1024 * 64, // 64KB default
+    memory_size: usize = 1024 * 64,
     debug_mode: bool = false,
     log_config: LogConfig = .{},
-
     pub const LogConfig = struct {
         min_level: nexlog.LogLevel = .debug,
         enable_colors: bool = true,
@@ -35,45 +32,29 @@ pub const VMConfig = struct {
     };
 };
 
-/// The Virtual Machine state
+/// The Virtual Machine state.
 pub const VM = struct {
-    /// General purpose registers
     registers: [REGISTER_COUNT]u32,
-    /// Program counter
     pc: usize,
-    /// Current program
     program: []const Instruction,
-    /// Allocation for VM memory
     allocator: std.mem.Allocator,
-    /// Is the VM currently running?
     running: bool,
-    /// Stack for the VM
     stack: std.ArrayList(u32),
-    /// Stack pointer
     sp: usize,
-    /// Comparison flag for conditional jumps
-    cmp_flag: i8, // -1: less, 0: equal, 1: greater
-    /// Memory for the VM
+    cmp_flag: i8,
     memory: []u8,
-    /// Memory size in bytes
     memory_size: usize,
-    /// Debug mode flag
     debug_mode: bool,
-    /// Instruction cache
     instruction_cache: std.AutoHashMap(usize, Instruction),
-    /// Hot path detection
     execution_count: std.AutoHashMap(usize, usize),
-    /// Logger instance
     logger: *nexlog.Logger,
 
-    /// Initialize a new VM with custom configuration
+    /// Initialize a new VM with custom configuration.
     pub fn initWithConfig(
         allocator: std.mem.Allocator,
         config: VMConfig,
     ) !*VM {
-        // Initialize logger first
         try std.fs.cwd().makePath("logs");
-
         var builder = nexlog.LogBuilder.init();
         _ = builder.setMinLevel(config.log_config.min_level)
             .enableColors(config.log_config.enable_colors)
@@ -86,22 +67,15 @@ pub const VM = struct {
                 .setMaxRotatedFiles(config.log_config.max_rotated_files)
                 .enableRotation(config.log_config.enable_rotation);
         }
-
         if (config.log_config.enable_async) {
             _ = builder.enableAsyncMode(true);
         }
-
         try builder.build(allocator);
-
         const logger = nexlog.getDefaultLogger() orelse return error.LoggerNotInitialized;
 
-        // Initialize VM memory
         const memory = try allocator.alloc(u8, config.memory_size);
-
-        // Initialize hashmaps for optimization
         const instruction_cache = std.AutoHashMap(usize, Instruction).init(allocator);
         const execution_count = std.AutoHashMap(usize, usize).init(allocator);
-
         const vm = try allocator.create(VM);
         vm.* = VM{
             .registers = [_]u32{0} ** REGISTER_COUNT,
@@ -122,22 +96,171 @@ pub const VM = struct {
 
         const metadata = vm.createLogMetadata();
         vm.logger.info("VM initialized with {d}KB memory", .{config.memory_size / 1024}, metadata);
-
         return vm;
     }
 
+    pub fn init(allocator: std.mem.Allocator) !*VM {
+        return initWithConfig(allocator, .{});
+    }
+
+    fn createLogMetadata(self: *const VM) nexlog.LogMetadata {
+        _ = self;
+        return .{
+            .timestamp = std.time.timestamp(),
+            .thread_id = 0,
+            .file = @src().file,
+            .line = @src().line,
+            .function = @src().fn_name,
+        };
+    }
+
+    pub fn deinit(self: *VM) void {
+        const metadata = self.createLogMetadata();
+        self.logger.info("VM shutting down", .{}, metadata);
+        self.allocator.free(self.memory);
+        self.stack.deinit();
+        self.instruction_cache.deinit();
+        self.execution_count.deinit();
+        self.logger.flush() catch {};
+        nexlog.deinit();
+        self.allocator.destroy(self);
+    }
+
+    /// Load a program into the VM.
+    pub fn loadProgram(self: *VM, program: []const Instruction) !void {
+        if (program.len == 0) {
+            return createRuntimeError(error.InvalidInstruction, "loading program", "Program is empty", "Provide at least one instruction");
+        }
+        self.program = program;
+        self.pc = 0;
+        self.logProgramLoad();
+    }
+
+    /// Execute the loaded program.
+    pub fn execute(self: *VM) !void {
+        if (self.program.len == 0) {
+            return self.logAndCreateError(error.InvalidInstruction, "executing program", "No program loaded", "Load a program before executing");
+        }
+        self.running = true;
+        while (self.running and self.pc < self.program.len) {
+            const current_inst = self.program[self.pc];
+            if (self.debug_mode) {
+                self.logInstructionExecution(current_inst);
+                self.logRegisterState();
+                self.logStackState();
+            }
+            try self.execution_count.put(self.pc, (self.execution_count.get(self.pc) orelse 0) + 1);
+            try self.executeInstruction(current_inst);
+            self.pc += 1;
+            if (self.pc % 1000 == 0) {
+                try self.optimizeHotPaths();
+                if (self.debug_mode) {
+                    self.logMemoryDump(0, 64);
+                }
+            }
+        }
+        if (self.debug_mode) {
+            const debug_info = self.getDebugInfo();
+            self.logger.debug("Final VM state:\n{}", .{debug_info}, self.createLogMetadata());
+        }
+    }
+
+    fn executeInstruction(self: *VM, inst: instruction_types.Instruction) !void {
+        const metadata = self.createLogMetadata();
+        if (inst.opcode == .HALT) {
+            self.logger.debug("Executing HALT instruction", .{}, metadata);
+            self.running = false;
+            return;
+        }
+        if (self.debug_mode) {
+            self.logger.debug("Before instruction {any}: R{d}={d}, R{d}={d}", .{ inst, inst.operand1, self.registers[inst.operand1], inst.operand2, self.registers[inst.operand2] }, metadata);
+        }
+        try decoder.decode(inst, self);
+        if (self.debug_mode) {
+            self.logger.debug("After instruction: R{d}={d}", .{ inst.dest_reg, self.registers[inst.dest_reg] }, metadata);
+        }
+    }
+
+    fn logAndCreateError(
+        self: *VM,
+        err: VMError,
+        operation: []const u8,
+        details: []const u8,
+        suggestion: []const u8,
+    ) VMError {
+        const metadata = self.createLogMetadata();
+        self.logger.err("VM Error:\n  Type: {s}\n  Operation: {s}\n  Details: {s}\n  Suggestion: {s}\n", .{ @errorName(err), operation, details, suggestion }, metadata);
+        return createRuntimeError(err, operation, details, suggestion);
+    }
+
+    // --- Logging Helper Methods ---
+    fn logInstructionExecution(self: *VM, inst: Instruction) void {
+        const metadata = self.createLogMetadata();
+        self.logger.debug("Executing instruction: {any} at PC={d}", .{ inst, self.pc }, metadata);
+    }
+
+    fn logRegisterState(self: *VM) void {
+        const metadata = self.createLogMetadata();
+        var buf: [512]u8 = undefined;
+        var fba = std.heap.FixedBufferAllocator.init(&buf);
+        var string = std.ArrayList(u8).init(fba.allocator());
+        defer string.deinit();
+        for (self.registers, 0..) |reg, i| {
+            if (reg != 0) {
+                string.writer().print("R{d}={d} ", .{ i, reg }) catch continue;
+            }
+        }
+        self.logger.debug("Register state: {s}", .{string.items}, metadata);
+    }
+
+    fn logStackState(self: *VM) void {
+        const metadata = self.createLogMetadata();
+        if (self.stack.items.len > 0) {
+            self.logger.debug("Stack depth={d}: {any}", .{ self.stack.items.len, self.stack.items }, metadata);
+        }
+    }
+
+    fn logMemoryDump(self: *VM, start: usize, length: usize) void {
+        const metadata = self.createLogMetadata();
+        const end = @min(start + length, self.memory.len);
+        self.logger.debug("Memory dump [{d}..{d}]: {any}", .{ start, end, self.memory[start..end] }, metadata);
+    }
+
+    fn logProgramLoad(self: *VM) void {
+        const metadata = self.createLogMetadata();
+        self.logger.info("Program loaded: {d} instructions", .{self.program.len}, metadata);
+    }
+
+    pub fn getDebugInfo(self: *VM) DebugInfo {
+        const metadata = self.createLogMetadata();
+        self.logger.debug("Gathering debug information", .{}, metadata);
+        return .{
+            .instruction_count = self.pc,
+            .last_instruction = if (self.pc > 0) self.program[self.pc - 1] else null,
+            .stack_depth = self.stack.items.len,
+            .registers = self.registers,
+            .pc = self.pc,
+            .cmp_flag = self.cmp_flag,
+        };
+    }
+
+    pub fn getRegister(self: *VM, register: u8) !u32 {
+        if (register >= REGISTER_COUNT) {
+            return createRuntimeError(error.InvalidInstruction, "reading register", "Invalid register number", "Use registers 0 through 15");
+        }
+        return self.registers[register];
+    }
+
     pub fn optimizeHotPaths(self: *VM) !void {
-        // Identify frequently executed code paths
         var it = self.execution_count.iterator();
         while (it.next()) |entry| {
             if (entry.value_ptr.* > 1000) {
-                // Cache this instruction
                 try self.instruction_cache.put(entry.key_ptr.*, self.program[entry.key_ptr.*]);
             }
         }
     }
 
-    /// Debug information
+    /// Debug information structure.
     pub const DebugInfo = struct {
         instruction_count: usize,
         last_instruction: ?Instruction,
@@ -152,231 +275,24 @@ pub const VM = struct {
             _: std.fmt.FormatOptions,
             writer: anytype,
         ) !void {
-            try writer.print(
-                \\Debug Information:
-                \\  Instructions executed: {}
-                \\  Stack depth: {}
-                \\  Program Counter: {}
-                \\  Compare Flag: {}
-                \\
-                \\Registers:
-                \\
-            , .{
-                self.instruction_count,
-                self.stack_depth,
-                self.pc,
-                self.cmp_flag,
-            });
-
-            // Print registers in a formatted way
+            try writer.print("Debug Information:\n  Instructions executed: {d}\n  Stack depth: {d}\n  PC: {d}\n  Compare Flag: {d}\n\nRegisters:\n", .{ self.instruction_count, self.stack_depth, self.pc, self.cmp_flag });
             for (self.registers, 0..) |reg, i| {
                 if (reg != 0) {
                     try writer.print("  R{d}: {d}\n", .{ i, reg });
                 }
             }
-
             if (self.last_instruction) |inst| {
-                try writer.print("\nLast instruction: {}\n", .{inst});
+                try writer.print("\nLast instruction: {any}\n", .{inst});
             }
         }
     };
-
-    pub fn getDebugInfo(self: *VM) DebugInfo {
-        const metadata = self.createLogMetadata();
-        self.logger.debug("Gathering debug information", .{}, metadata);
-
-        const debug_info = DebugInfo{
-            .instruction_count = self.pc,
-            .last_instruction = if (self.pc > 0) self.program[self.pc - 1] else null,
-            .stack_depth = self.stack.items.len,
-            .registers = self.registers,
-            .pc = self.pc,
-            .cmp_flag = self.cmp_flag,
-        };
-
-        // Log detailed debug information
-        self.logger.debug(
-            \\Debug snapshot:
-            \\  PC: {d}
-            \\  Stack depth: {d}
-            \\  Instructions executed: {d}
-            \\
-        , .{
-            debug_info.pc,
-            debug_info.stack_depth,
-            debug_info.instruction_count,
-        }, metadata);
-
-        return debug_info;
-    }
-
-    /// Initialize a new VM with default configuration
-    pub fn init(allocator: std.mem.Allocator) !*VM {
-        return initWithConfig(allocator, .{});
-    }
-
-    fn createLogMetadata(self: *const VM) nexlog.LogMetadata {
-        _ = self;
-        return .{
-            .timestamp = std.time.timestamp(),
-            .thread_id = 0, // In a real app, get actual thread ID
-            .file = @src().file,
-            .line = @src().line,
-            .function = @src().fn_name,
-        };
-    }
-
-    /// Enable or disable debug mode
-    pub fn setDebugMode(self: *VM, enable: bool) void {
-        self.debug_mode = enable;
-    }
-
-    pub fn deinit(self: *VM) void {
-        const metadata = self.createLogMetadata();
-        self.logger.info("VM shutting down", .{}, metadata);
-
-        self.allocator.free(self.memory);
-        self.stack.deinit();
-        self.instruction_cache.deinit();
-        self.execution_count.deinit();
-
-        // Ensure all logs are flushed before shutdown
-        self.logger.flush() catch {};
-
-        nexlog.deinit(); // Clean up the logger
-        self.allocator.destroy(self);
-    }
-    /// Load a program into the VM
-    pub fn loadProgram(self: *VM, program: []const Instruction) !void {
-        if (program.len == 0) {
-            return createError(
-                error.InvalidInstruction, // Note: using error.InvalidInstruction
-                "loading program",
-                "Program is empty",
-                "Provide at least one instruction",
-                null,
-            );
-        }
-        self.program = program;
-        self.pc = 0;
-    }
-
-    /// Execute the loaded program
-    pub fn execute(self: *VM) !void {
-        const metadata = self.createLogMetadata();
-
-        if (self.program.len == 0) {
-            self.logger.err("Attempted to execute with no program loaded", .{}, metadata);
-            return createError(
-                error.InvalidInstruction,
-                "executing program",
-                "No program loaded",
-                "Load a program before executing",
-                null,
-            );
-        }
-
-        self.logger.info("Starting program execution with {d} instructions", .{self.program.len}, metadata);
-
-        self.running = true;
-        while (self.running and self.pc < self.program.len) {
-            if (self.debug_mode) {
-                const current_inst = self.program[self.pc];
-                self.logger.debug(
-                    "Executing instruction at PC={d}: {any}",
-                    .{ self.pc, current_inst },
-                    metadata,
-                );
-            }
-
-            try self.execution_count.put(self.pc, (self.execution_count.get(self.pc) orelse 0) + 1);
-
-            try self.executeInstruction(self.program[self.pc]);
-            self.pc += 1;
-
-            if (self.pc % 1000 == 0) {
-                self.logger.debug("Optimizing hot paths at PC={d}", .{self.pc}, metadata);
-                try self.optimizeHotPaths();
-            }
-        }
-
-        // Log final execution state
-        if (self.debug_mode) {
-            const debug_info = self.getDebugInfo();
-            self.logger.debug(
-                \\Execution completed:
-                \\{}
-            ,
-                .{debug_info},
-                metadata,
-            );
-        }
-
-        self.logger.info("Program execution completed successfully", .{}, metadata);
-    }
-
-    fn executeInstruction(self: *VM, inst: instruction_types.Instruction) !void {
-        const metadata = self.createLogMetadata();
-
-        if (inst.opcode == .HALT) {
-            self.logger.debug("Executing HALT instruction", .{}, metadata);
-            self.running = false;
-            return;
-        }
-
-        if (self.debug_mode) {
-            // Log register state before execution
-            self.logger.debug(
-                "Before instruction {any}: R{d}={d}, R{d}={d}",
-                .{
-                    inst,
-                    inst.operand1,
-                    self.registers[inst.operand1],
-                    inst.operand2,
-                    self.registers[inst.operand2],
-                },
-                metadata,
-            );
-        }
-
-        try decoder.decode(inst, self);
-
-        if (self.debug_mode) {
-            // Log register state after execution
-            self.logger.debug(
-                "After instruction: R{d}={d}",
-                .{ inst.dest_reg, self.registers[inst.dest_reg] },
-                metadata,
-            );
-        }
-    }
-
-    /// Get the value of a register
-    pub fn getRegister(self: *VM, register: u8) !u32 {
-        if (register >= REGISTER_COUNT) {
-            return createError(
-                error.InvalidInstruction,
-                "reading register",
-                "Invalid register number",
-                "Use registers 0 through 15",
-                null,
-            );
-        }
-        return self.registers[register];
-    }
 };
 
-// Example test showing the target we want to achieve
 test "basic arithmetic operations" {
     const allocator = std.testing.allocator;
-
     var vm = try VM.init(allocator);
     defer vm.deinit();
 
-    // Create a test program:
-    // LOAD R1, 5
-    // LOAD R2, 10
-    // ADD R3, R1, R2
     const program = &[_]Instruction{
         .{ .opcode = .LOAD, .dest_reg = 1, .operand1 = 5, .operand2 = 0 },
         .{ .opcode = .LOAD, .dest_reg = 2, .operand1 = 10, .operand2 = 0 },
@@ -386,7 +302,5 @@ test "basic arithmetic operations" {
 
     try vm.loadProgram(program);
     try vm.execute();
-
-    // R3 should contain 15 (5 + 10)
     try std.testing.expectEqual(@as(u32, 15), try vm.getRegister(3));
 }
