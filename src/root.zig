@@ -14,6 +14,7 @@ const instruction_set = @import("instruction/set.zig");
 pub const VM = vm_mod.VM;
 pub const Error = error_mod.Error;
 pub const VMError = error_mod.VMError;
+pub const VMConfig = vm_mod.VMConfig;
 pub const createRuntimeError = error_mod.createRuntimeError;
 
 pub const Instruction = instruction_types.Instruction;

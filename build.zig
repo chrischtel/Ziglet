@@ -55,6 +55,8 @@ pub fn build(b: *std.Build) void {
             .path = "examples/jump_instructions.zig",
             //  .libc = true,
         },
+        .{ .name = "default_config", .path = "examples/default_config.zig" },
+        .{ .name = "custom_config", .path = "examples/custom_config.zig" },
     };
 
     const all_examples_step = b.step("all-examples", "Run all examples (for CI)");

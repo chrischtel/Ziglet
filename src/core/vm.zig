@@ -17,7 +17,7 @@ pub const REGISTER_COUNT = instruction_types.REGISTER_COUNT;
 /// The configuration for a VM instance.
 pub const VMConfig = struct {
     memory_size: usize = 1024 * 64,
-    debug_mode: bool = false,
+    debug_mode: bool = true,
     log_config: LogConfig = .{},
     pub const LogConfig = struct {
         min_level: nexlog.LogLevel = .debug,
@@ -27,7 +27,7 @@ pub const VMConfig = struct {
         max_file_size: usize = 5 * 1024 * 1024,
         max_rotated_files: usize = 3,
         enable_rotation: bool = true,
-        enable_async: bool = true,
+        enable_async: bool = false,
         enable_metadata: bool = true,
     };
 };
