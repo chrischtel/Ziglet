@@ -30,10 +30,20 @@ pub fn build(b: *std.Build) void {
     const test_step = b.step("test", "Run unit tests");
     test_step.dependOn(&run_lib_unit_tests.step);
 
-    const examples = [_]struct { name: []const u8, path: []const u8 }{
+    const examples = [_]struct {
+        name: []const u8,
+        path: []const u8,
+        // If true, corresponding example will link to libc (default: false)
+        // example below
+        libc: bool = false,
+    }{
         .{ .name = "simple", .path = "examples/simple.zig" },
         .{ .name = "calculator", .path = "examples/calculator.zig" },
-        .{ .name = "jump", .path = "examples/jump_instructions.zig" },
+        .{
+            .name = "jump",
+            .path = "examples/jump_instructions.zig",
+            //  .libc = true,
+        },
     };
 
     const all_examples_step = b.step("all-examples", "Run all examples (for CI)");
@@ -48,6 +58,9 @@ pub fn build(b: *std.Build) void {
             });
             exe.root_module.addImport("ziglet", ziglet_module);
 
+            if (example.libc) {
+                exe.linkLibC();
+            }
             b.installArtifact(exe);
 
             const run_cmd = b.addRunArtifact(exe);
