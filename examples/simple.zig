@@ -16,14 +16,6 @@ pub fn main() !void {
     defer args.deinit();
     _ = args.skip(); // Skip program name
 
-    // Enable debug mode if --debug flag is present
-    const debug_mode = if (args.next()) |arg|
-        std.mem.eql(u8, arg, "--debug")
-    else
-        false;
-
-    vm.setDebugMode(debug_mode);
-
     // Create and run program
     const program = &[_]ziglet.Instruction{
         .{ .opcode = .LOAD, .dest_reg = 1, .operand1 = 5, .operand2 = 0 },
