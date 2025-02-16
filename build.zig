@@ -13,10 +13,20 @@ pub fn build(b: *std.Build) void {
     });
     b.installArtifact(lib);
 
+    // setup logging
+    const nexlog_dep = b.dependency("nexlog", .{
+        .target = target,
+        .optimize = optimize,
+    });
+
+    lib.root_module.addImport("nexlog", nexlog_dep.module("nexlog"));
+
     // Create module for use as a dependency
     const ziglet_module = b.addModule("ziglet", .{
         .root_source_file = b.path("src/root.zig"),
     });
+
+    ziglet_module.addImport("nexlog", nexlog_dep.module("nexlog"));
 
     // Unit tests
     const lib_unit_tests = b.addTest(.{
