@@ -119,9 +119,14 @@ pub const Instructions = struct {
                 null,
             );
         }
-
         vm.sp -= 1;
-        registers[dest] = vm.stack.pop();
+        const popped = vm.stack.pop();
+
+        if (@TypeOf(popped) == ?u32) {
+            registers[dest] = popped orelse unreachable;
+        } else {
+            registers[dest] = popped;
+        }
     }
 
     /// JMP - Unconditional jump
