@@ -4,8 +4,8 @@
 
     .dependencies = .{
         .nexlog = .{
-            .url = "git+https://github.com/chrischtel/nexlog?ref=develop#5f1580052c4b310d353c792326f8f1340ad86a3a",
-            .hash = "1220c760f31f4e218e63c0d9a526d856c405195df90a448395184950704e9128610a",
+            .url = "git+https://github.com/chrischtel/nexlog?ref=develop#28f0d766be55f922f0e4d340a8c14cf6c10c2f08",
+            .hash = "1220ea04de9ed19f6a8f8b9cfac277c8ab4e46ffdc7d9affe83d649159ff5143c669",
         },
     },
 
