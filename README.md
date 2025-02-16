@@ -11,8 +11,28 @@ for running sandboxed code, game scripting, and more. It is both a playground
 for experimentation with VM internals and a foundation for building lightweight,  
 secure applications.**
 
+## Table of Contents
+
+- [Overview](#what-is-ziglet)
+- [How Ziglet and Lua Work Together](#how-ziglet-and-lua-work-together)
+- [Current Features](#current-features)
+- [Getting Started](#getting-started)
+- [Examples](#examples)
+  - [Basic Arithmetic](#basic-arithmetic)
+  - [Memory Operations](#memory-operations)
+  - [Control Flow](#control-flow)
+- [Current Use Cases](#current-use-cases)
+- [Current Development Status](#current-development-status)
+- [Contributing](#contributing)
+- [License](#license)
+- [Acknowledgements](#acknowledgements)
+- [FAQ](#frequently-asked-questions-faq)
+- [Future Roadmap](#future-roadmap)
+- [Project Status](#project-status)
+
 ---
 
+<a id="what-is-ziglet"></a>
 ## What is Ziglet?
 
 Unlike full-blown virtual machine hypervisors (such as VirtualBox or Hyper‑V)  
@@ -35,6 +55,7 @@ small, predefined instruction set. This means:
 
 ---
 
+<a id="how-ziglet-and-lua-work-together"></a>
 ## How Ziglet and Lua Work Together
 
 A popular use-case for a minimal VM like Ziglet is running game logic written in a  
@@ -83,7 +104,8 @@ higher-level language such as Lua. Here’s how the pipeline works:
 
 ---
 
-## ✨ Current Features
+<a id="current-features"></a>
+## Current Features
 
 - **Core Architecture:**
   - 16 general-purpose registers
@@ -119,7 +141,8 @@ higher-level language such as Lua. Here’s how the pipeline works:
 
 ---
 
-## 🚀 Getting Started
+<a id="getting-started"></a>
+## Getting Started
 
 1. **Fetch Ziglet using Zigs Package Manager**
    ```bash
@@ -140,8 +163,10 @@ higher-level language such as Lua. Here’s how the pipeline works:
 
 ---
 
-## 📚 Examples
+<a id="examples"></a>
+## Examples
 
+<a id="basic-arithmetic"></a>
 ### Basic Arithmetic
 
 ```zig
@@ -153,6 +178,7 @@ const program = &[_]Instruction{
 };
 ```
 
+<a id="memory-operations"></a>
 ### Memory Operations
 
 ```zig
@@ -164,6 +190,7 @@ const program = &[_]Instruction{
 };
 ```
 
+<a id="control-flow"></a>
 ### Control Flow
 
 ```zig
@@ -177,7 +204,8 @@ const program = &[_]Instruction{
 
 ---
 
-## 🎯 Current Use Cases
+<a id="current-use-cases"></a>
+## Current Use Cases
 
 - **Game Scripting:**  
   Run lightweight, sandboxed Lua (or Lua-like) scripts that control game logic and AI behaviors.
@@ -193,7 +221,8 @@ const program = &[_]Instruction{
 
 ---
 
-## 🗺️ Current Development Status
+<a id="current-development-status"></a>
+## Current Development Status
 
 - [x] Core VM implementation
 - [x] Basic instruction set
@@ -210,7 +239,8 @@ const program = &[_]Instruction{
 
 ---
 
-## 🤝 Contributing
+<a id="contributing"></a>
+## Contributing
 
 We welcome contributions! Current focus areas:
 
@@ -222,36 +252,40 @@ We welcome contributions! Current focus areas:
 
 ---
 
-## 📄 License
+<a id="license"></a>
+## License
 
 Ziglet is licensed under the [BSD 3-Clause](LICENSE).
 
 ---
 
-## 🙏 Acknowledgements
+<a id="acknowledgements"></a>
+## Acknowledgements
 
 - The Zig programming language and its vibrant community  
 - All contributors and early adopters who have supported Ziglet's development
 
 ---
 
+<a id="frequently-asked-questions-faq"></a>
 ## Frequently Asked Questions (FAQ)
 
 **Q: What exactly is Ziglet?**  
-A: Ziglet is a minimalist virtual machine that runs a fixed instruction set. It is not meant for full OS emulation—instead, it’s designed for executing sandboxed code, such as game scripts or experimental language runtime, within a well-defined, secure environment.
+A: Ziglet is a minimalist virtual machine that runs a fixed instruction set. It is not meant for full OS emulation—instead, it’s designed for executing sandboxed code, such as game scripts or experimental language runtimes, within a well-defined, secure environment.
 
 **Q: How does Ziglet compare to other VMs, like Lua’s VM?**  
-A: Lua’s VM is designed to execute a rich, high-level bytecode supporting dynamic language features. In contrast, Ziglet is intentionally minimal, with a very basic instruction set (e.g. arithmetic, memory management, control flow). To run Lua on Ziglet, you would compile Lua (or a subset of Lua) into Ziglet’s bytecode, thus having a safe and lightweight backend to execute Lua scripts for game logic or sandboxed code.
+A: Lua’s VM is designed to execute a rich, high-level bytecode supporting dynamic language features. In contrast, Ziglet is intentionally minimal, with a very basic instruction set (e.g., arithmetic, memory management, control flow). To run Lua on Ziglet, you would compile Lua (or a subset of Lua) into Ziglet’s bytecode, providing a safe and lightweight backend to execute scripts.
 
 **Q: How is game scripting supported?**  
-A: Game developers can use Lua (or a similar language) for writing game logic. A separate compiler/transpiler converts the high-level Lua code into Ziglet’s bytecode. This bytecode is then loaded into the VM via our simple API. By running scripts in this isolated, minimal environment, the game engine remains secure and robust, while allowing dynamic, on-the-fly script updates.
+A: Game developers can write game logic in Lua (or a similar language). A separate compiler/transpiler converts the high-level code into Ziglet’s bytecode. This bytecode is then loaded into the VM via our API. Running scripts in this isolated environment keeps the game engine secure while allowing dynamic updates.
 
 **Q: Who builds the Lua compiler?**  
-A: While Ziglet defines the bytecode format and provides the VM runtime, the Lua-to-bytecode compiler (or transpiler) is a separate component. We provide documentation and reference specifications so that tool developers can target Ziglet. This separation allows the game engine and VM to remain small, whilst still supporting powerful, high-level languages.
+A: While Ziglet defines the bytecode format and provides the VM runtime, the Lua-to-bytecode compiler (or transpiler) is a separate component. We provide documentation and reference specifications so that tool developers can target Ziglet. This separation keeps the VM lean while still supporting powerful, high-level languages.
 
 ---
 
-## 🤔 Future Roadmap
+<a id="future-roadmap"></a>
+## Future Roadmap
 
 - **JIT Compilation:**  
   Boost performance by translating bytecode directly into native machine code on the fly.
@@ -269,6 +303,9 @@ A: While Ziglet defines the bytecode format and provides the VM runtime, the Lua
   Expand the VM to better support a larger subset of high-level languages, including Lua.
 
 ---
+
+<a id="project-status"></a>
+## Project Status
 
 **Project Status:** Active development  
 **Latest Update:** 16.02.2025  
