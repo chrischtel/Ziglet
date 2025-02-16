@@ -30,29 +30,37 @@ pub fn build(b: *std.Build) void {
     const test_step = b.step("test", "Run unit tests");
     test_step.dependOn(&run_lib_unit_tests.step);
 
-    // TODO: Add examples
     const examples = [_]struct { name: []const u8, path: []const u8 }{
         .{ .name = "simple", .path = "examples/simple.zig" },
         .{ .name = "calculator", .path = "examples/calculator.zig" },
         .{ .name = "jump", .path = "examples/jump_instructions.zig" },
     };
 
-    // Create an example step
-    const example_step = b.step("examples", "Build examples");
+    const all_examples_step = b.step("all-examples", "Run all examples (for CI)");
 
-    // Add each example
-    for (examples) |example| {
-        const exe = b.addExecutable(.{
-            .name = example.name,
-            .root_source_file = b.path(example.path),
-            .target = target,
-            .optimize = optimize,
-        });
+    {
+        for (examples) |example| {
+            const exe = b.addExecutable(.{
+                .name = example.name,
+                .target = target,
+                .optimize = optimize,
+                .root_source_file = b.path(example.path),
+            });
+            exe.root_module.addImport("ziglet", ziglet_module);
 
-        // Add ziglet as a module
-        exe.root_module.addImport("ziglet", ziglet_module);
+            b.installArtifact(exe);
 
-        const install_exe = b.addInstallArtifact(exe, .{});
-        example_step.dependOn(&install_exe.step);
+            const run_cmd = b.addRunArtifact(exe);
+            run_cmd.step.dependOn(b.getInstallStep());
+            if (b.args) |args| {
+                run_cmd.addArgs(args);
+            }
+
+            const run_step = b.step(example.name, example.path);
+            run_step.dependOn(&run_cmd.step);
+
+            test_step.dependOn(&run_cmd.step);
+            all_examples_step.dependOn(&run_cmd.step);
+        }
     }
 }
