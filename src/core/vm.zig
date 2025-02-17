@@ -167,17 +167,100 @@ pub const VM = struct {
 
     fn executeInstruction(self: *VM, inst: instruction_types.Instruction) !void {
         const metadata = self.createLogMetadata();
+
         if (inst.opcode == .HALT) {
             self.logger.debug("Executing HALT instruction", .{}, metadata);
             self.running = false;
             return;
         }
+
         if (self.debug_mode) {
-            self.logger.debug("Before instruction {any}: R{d}={d}, R{d}={d}", .{ inst, inst.operand1, self.registers[inst.operand1], inst.operand2, self.registers[inst.operand2] }, metadata);
+            // Log based on instruction type
+            switch (inst.opcode) {
+                .LOAD => {
+                    self.logger.debug(
+                        "Before instruction {any}: immediate={d}",
+                        .{ inst, inst.operand1 },
+                        metadata,
+                    );
+                },
+                .ADD, .SUB, .MUL, .DIV, .MOD, .CMP => {
+                    if (inst.operand1 < REGISTER_COUNT and inst.operand2 < REGISTER_COUNT) {
+                        self.logger.debug(
+                            "Before instruction {any}: R{d}={d}, R{d}={d}",
+                            .{
+                                inst,
+                                inst.operand1,
+                                self.registers[inst.operand1],
+                                inst.operand2,
+                                self.registers[inst.operand2],
+                            },
+                            metadata,
+                        );
+                    } else {
+                        self.logger.debug(
+                            "Before instruction {any}: invalid register operands",
+                            .{inst},
+                            metadata,
+                        );
+                    }
+                },
+                .STORE, .LOAD_MEM => {
+                    self.logger.debug(
+                        "Before instruction {any}: memory address={d}",
+                        .{ inst, inst.operand1 },
+                        metadata,
+                    );
+                },
+                .MEMCPY => {
+                    self.logger.debug(
+                        "Before instruction {any}: dest={d}, src={d}, len={d}",
+                        .{ inst, inst.dest_reg, inst.operand1, inst.operand2 },
+                        metadata,
+                    );
+                },
+                .PUSH => {
+                    if (inst.dest_reg < REGISTER_COUNT) {
+                        self.logger.debug(
+                            "Before instruction {any}: R{d}={d}",
+                            .{ inst, inst.dest_reg, self.registers[inst.dest_reg] },
+                            metadata,
+                        );
+                    }
+                },
+                .POP => {
+                    self.logger.debug(
+                        "Before instruction {any}: dest_reg={d}",
+                        .{ inst, inst.dest_reg },
+                        metadata,
+                    );
+                },
+                else => {
+                    self.logger.debug(
+                        "Before instruction {any}",
+                        .{inst},
+                        metadata,
+                    );
+                },
+            }
         }
+
         try decoder.decode(inst, self);
+
         if (self.debug_mode) {
-            self.logger.debug("After instruction: R{d}={d}", .{ inst.dest_reg, self.registers[inst.dest_reg] }, metadata);
+            // Only log result for instructions that modify registers
+            if (inst.dest_reg < REGISTER_COUNT) {
+                switch (inst.opcode) {
+                    .LOAD, .ADD, .SUB, .MUL, .DIV, .MOD, .LOAD_MEM, .POP => {
+                        self.logger.debug(
+                            "After instruction: R{d}={d}",
+                            .{ inst.dest_reg, self.registers[inst.dest_reg] },
+                            metadata,
+                        );
+                    },
+                    else => {},
+                }
+            }
         }
     }
 
@@ -303,4 +386,117 @@ test "basic arithmetic operations" {
     try vm.loadProgram(program);
     try vm.execute();
     try std.testing.expectEqual(@as(u32, 15), try vm.getRegister(3));
+}
+
+test "Ziglet Fuzz Test" {
+    // Konfiguration
+    const config = .{
+        .num_instructions = 20, // Reduziert von 50
+        .num_iterations = 5,
+        .debug_mode = false, // Debug-Logging deaktiviert
+        .max_steps = 1000, // Verhindert unendliche Schleifen
+    };
+
+    std.debug.print("\nStarting Fuzz Test...\n", .{});
+
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    defer _ = gpa.deinit();
+    const allocator = gpa.allocator();
+
+    var rng = std.rand.DefaultPrng.init(@intCast(std.time.nanoTimestamp()));
+    const random = rng.random();
+
+    // VM mit minimalem Logging
+    var vm = try VM.initWithConfig(allocator, .{
+        .debug_mode = config.debug_mode,
+        .log_config = .{
+            .min_level = .info,
+            .enable_async = true,
+            .buffer_size = 1024,
+            .log_file_path = null, // Kein File-Logging
+        },
+    });
+    defer vm.deinit();
+
+    var instructions = try allocator.alloc(Instruction, config.num_instructions);
+    defer allocator.free(instructions);
+
+    var success_count: usize = 0;
+    var error_count: usize = 0;
+
+    // Reduzierter Befehlssatz für schnellere Tests
+    const all_opcodes = [_]OpCode{ .LOAD, .ADD, .SUB, .MUL, .DIV, .MOD, .CMP, .HALT };
+
+    for (0..config.num_iterations) |iteration| {
+        std.debug.print("\rTesting {d}/{d}...", .{ iteration + 1, config.num_iterations });
+
+        // Generiere Instruktionen
+        for (instructions[0 .. config.num_instructions - 1], 0..) |*inst, i| {
+            const randIndex = random.uintLessThan(usize, all_opcodes.len - 1); // Exclude HALT
+            inst.opcode = all_opcodes[randIndex];
+            inst.dest_reg = @intCast(random.uintLessThan(u8, REGISTER_COUNT));
+
+            switch (inst.opcode) {
+                .LOAD => {
+                    inst.operand1 = random.uintLessThan(u32, 100); // Kleinere Zahlen
+                    inst.operand2 = 0;
+                },
+                .ADD, .SUB, .MUL => {
+                    inst.operand1 = random.uintLessThan(u32, REGISTER_COUNT);
+                    inst.operand2 = random.uintLessThan(u32, REGISTER_COUNT);
+                },
+                .DIV, .MOD => {
+                    inst.operand1 = random.uintLessThan(u32, REGISTER_COUNT);
+                    inst.operand2 = random.uintLessThan(u32, REGISTER_COUNT);
+
+                    // Stelle sicher, dass der Divisor nicht 0 ist
+                    const preload = Instruction{
+                        .opcode = .LOAD,
+                        .dest_reg = @intCast(inst.operand2),
+                        .operand1 = 1 + random.uintLessThan(u32, 10),
+                        .operand2 = 0,
+                    };
+                    if (i > 0) {
+                        instructions[i - 1] = preload;
+                    }
+                },
+                else => {
+                    inst.operand1 = random.uintLessThan(u32, REGISTER_COUNT);
+                    inst.operand2 = random.uintLessThan(u32, REGISTER_COUNT);
+                },
+            }
+        }
+
+        // Letzte Instruktion ist HALT
+        instructions[config.num_instructions - 1] = .{
+            .opcode = .HALT,
+            .dest_reg = 0,
+            .operand1 = 0,
+            .operand2 = 0,
+        };
+
+        try vm.loadProgram(instructions);
+
+        vm.execute() catch |err| {
+            error_count += 1;
+            switch (err) {
+                error.IntegerOverflow, error.IntegerUnderflow, error.DivisionByZero => {
+                    // Diese Fehler sind erwartete Ergebnisse des Fuzzing
+                    std.debug.print("\nExpected error in iteration {d}: {s}\n", .{ iteration + 1, @errorName(err) });
+                },
+                else => {
+                    // Unerwartete Fehler sollten den Test fehlschlagen lassen
+                    std.debug.print("\nUnexpected error in iteration {d}: {s}\n", .{ iteration + 1, @errorName(err) });
+                    return err;
+                },
+            }
+            continue;
+        };
+
+        success_count += 1;
+    }
+
+    std.debug.print("\n\nFuzz Test Complete:\n", .{});
+    std.debug.print("  Successful: {d}/{d}\n", .{ success_count, config.num_iterations });
+    std.debug.print("  Failed: {d}/{d}\n", .{ error_count, config.num_iterations });
 }
