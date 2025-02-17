@@ -40,6 +40,8 @@ pub const VMError = error{
     InvalidMemoryAccess,
     InvalidAlignment,
     SecurityViolation,
+    IntegerOverflow,
+    IntegerUnderflow,
 };
 
 pub const SecurityConfig = struct {
