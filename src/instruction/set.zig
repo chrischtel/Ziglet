@@ -33,7 +33,20 @@ pub const Instructions = struct {
         try validateRegister(dest);
         try validateRegister(src1);
         try validateRegister(src2);
-        registers[dest] = registers[src1] + registers[src2];
+
+        const val1 = registers[src1];
+        const val2 = registers[src2];
+        const result = @addWithOverflow(val1, val2);
+        if (result[1] == 1) {
+            registers[dest] = std.math.maxInt(u32);
+            return createRuntimeError(
+                error.IntegerOverflow,
+                "addition operation",
+                "Addition would result in overflow",
+                "Ensure operands don't cause overflow",
+            );
+        }
+        registers[dest] = result[0];
     }
 
     /// SUB Rx, Ry, Rz
@@ -41,6 +54,19 @@ pub const Instructions = struct {
         try validateRegister(dest);
         try validateRegister(src1);
         try validateRegister(src2);
+        const val1 = registers[src1];
+        const val2 = registers[src2];
+
+        // Check für Unterlauf
+        if (val2 > val1) {
+            registers[dest] = 0; // Oder einen anderen Minimalwert setzen
+            return createRuntimeError(
+                error.IntegerUnderflow,
+                "subtraction operation",
+                "Subtraction would result in negative value",
+                "Ensure operands don't cause underflow",
+            );
+        }
         registers[dest] = registers[src1] - registers[src2];
     }
 
@@ -49,7 +75,20 @@ pub const Instructions = struct {
         try validateRegister(dest);
         try validateRegister(src1);
         try validateRegister(src2);
-        registers[dest] = registers[src1] * registers[src2];
+
+        const val1 = registers[src1];
+        const val2 = registers[src2];
+        const result = @mulWithOverflow(val1, val2);
+        if (result[1] == 1) {
+            registers[dest] = std.math.maxInt(u32);
+            return createRuntimeError(
+                error.IntegerOverflow,
+                "multiplication operation",
+                "Multiplication would result in overflow",
+                "Ensure operands don't cause overflow",
+            );
+        }
+        registers[dest] = result[0];
     }
 
     /// DIV Rx, Ry, Rz
