@@ -1,26 +1,29 @@
 const std = @import("std");
 const ziglet = @import("ziglet");
-const stdout = std.io.getStdOut().writer();
+
 
 /// a fibonacci non recursive program
 ///
-/// Ruby example
+/// Lua example
 ///
-/// def fib(n)
-///     return n if n < 2
+/// function Fib(n)
+/// 	if n < 2 then
+///         return n
+///     end
 ///
-///     current = 0
-///     prev1 = 0
-///     prev2 =  1
+///     local current = 0
+///     local prev1 = 0
+///     local prev2 = 1
 ///
-///     for _ in 2..(n + 1) do
+///     for _ = 2, n + 1 do
 ///         current = prev1 + prev2
 ///         prev2 = prev1
 ///         prev1 = current
 ///     end
 ///
-///     current
+///     return current
 /// end
+
 fn createFibProgram(
     allocator: *std.mem.Allocator,
     n: u32,
@@ -84,6 +87,7 @@ fn createFibProgram(
 }
 
 pub fn main() !void {
+    const stdout = std.io.getStdOut().writer();
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
