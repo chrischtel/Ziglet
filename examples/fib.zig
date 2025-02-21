@@ -1,6 +1,5 @@
 const std = @import("std");
 const ziglet = @import("ziglet");
-const stdout = std.io.getStdOut().writer();
 
 /// a fibonacci non recursive program
 ///
@@ -84,6 +83,8 @@ fn createFibProgram(
 }
 
 pub fn main() !void {
+    const stdout = std.io.getStdOut().writer();
+
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
@@ -96,5 +97,5 @@ pub fn main() !void {
     try vm.loadProgram(program);
     try vm.execute();
     const result = try vm.getRegister(3);
-    try stdout.print("fib({d}) = {d}\n", .{n,result});
+    try stdout.print("fib({d}) = {d}\n", .{ n, result });
 }
