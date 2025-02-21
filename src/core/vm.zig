@@ -403,7 +403,8 @@ test "Ziglet Fuzz Test" {
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
-    var rng = std.rand.DefaultPrng.init(@intCast(std.time.nanoTimestamp()));
+    var rng = std.Random.DefaultPrng.init(@intCast(std.time.nanoTimestamp()));
+
     const random = rng.random();
 
     // VM mit minimalem Logging
