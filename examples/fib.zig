@@ -1,29 +1,30 @@
 const std = @import("std");
 const ziglet = @import("ziglet");
 
-
+/// The following Lua program has intentionally bad indentation
+/// because the Zig compiler doesn't allow(atleast for now) tab characters in comments.
+///
 /// a fibonacci non recursive program
 ///
 /// Lua example
 ///
 /// function Fib(n)
-/// 	if n < 2 then
-///         return n
-///     end
+///  if n < 2 then
+///   return n
+///  end
 ///
-///     local current = 0
-///     local prev1 = 0
-///     local prev2 = 1
+///  local current = 0
+///  local prev1 = 0
+///  local prev2 = 1
 ///
-///     for _ = 2, n + 1 do
-///         current = prev1 + prev2
-///         prev2 = prev1
-///         prev1 = current
-///     end
+///  for _ = 2, n + 1 do
+///   current = prev1 + prev2
+///   prev2 = prev1
+///   prev1 = current
+///  end
 ///
-///     return current
+///  return current
 /// end
-
 fn createFibProgram(
     allocator: *std.mem.Allocator,
     n: u32,
@@ -100,5 +101,5 @@ pub fn main() !void {
     try vm.loadProgram(program);
     try vm.execute();
     const result = try vm.getRegister(3);
-    try stdout.print("fib({d}) = {d}\n", .{n,result});
+    try stdout.print("fib({d}) = {d}\n", .{ n, result });
 }
