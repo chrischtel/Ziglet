@@ -74,8 +74,10 @@ pub const VM = struct {
         const logger = nexlog.getDefaultLogger() orelse return error.LoggerNotInitialized;
 
         const memory = try allocator.alloc(u8, config.memory_size);
+
         const instruction_cache = std.AutoHashMap(usize, Instruction).init(allocator);
         const execution_count = std.AutoHashMap(usize, usize).init(allocator);
+
         const vm = try allocator.create(VM);
         vm.* = VM{
             .registers = [_]u32{0} ** REGISTER_COUNT,
@@ -168,39 +170,59 @@ pub const VM = struct {
     fn executeInstruction(self: *VM, inst: instruction_types.Instruction) !void {
         const metadata = self.createLogMetadata();
 
-        if (inst.opcode == .HALT) {
+        var decoded_inst: Instruction = undefined;
+        if (self.instruction_cache.get(self.pc)) |cachedInst| {
+            decoded_inst = cachedInst;
+            if (self.debug_mode) {
+                self.logInstructionExecution(decoded_inst); // Log the cached instruction
+                self.logRegisterState();
+                self.logStackState();
+            }
+        } else {
+            decoded_inst = inst;
+            try decoder.decode(decoded_inst, self); // Decode only if not cached
+            if (self.debug_mode) {
+                self.logInstructionExecution(decoded_inst);
+                self.logRegisterState();
+                self.logStackState();
+            }
+        }
+
+        if (decoded_inst.opcode == .HALT) {
             self.logger.debug("Executing HALT instruction", .{}, metadata);
             self.running = false;
             return;
         }
 
+        try self.execution_count.put(self.pc, (self.execution_count.get(self.pc) orelse 0) + 1);
+
+        // Log before execution (using decoded_inst)
         if (self.debug_mode) {
-            // Log based on instruction type
-            switch (inst.opcode) {
+            switch (decoded_inst.opcode) {
                 .LOAD => {
                     self.logger.debug(
                         "Before instruction {any}: immediate={d}",
-                        .{ inst, inst.operand1 },
+                        .{ decoded_inst, decoded_inst.operand1 },
                         metadata,
                     );
                 },
                 .ADD, .SUB, .MUL, .DIV, .MOD, .CMP => {
-                    if (inst.operand1 < REGISTER_COUNT and inst.operand2 < REGISTER_COUNT) {
+                    if (decoded_inst.operand1 < REGISTER_COUNT and decoded_inst.operand2 < REGISTER_COUNT) {
                         self.logger.debug(
                             "Before instruction {any}: R{d}={d}, R{d}={d}",
                             .{
-                                inst,
-                                inst.operand1,
-                                self.registers[inst.operand1],
-                                inst.operand2,
-                                self.registers[inst.operand2],
+                                decoded_inst,
+                                decoded_inst.operand1,
+                                self.registers[decoded_inst.operand1],
+                                decoded_inst.operand2,
+                                self.registers[decoded_inst.operand2],
                             },
                             metadata,
                         );
                     } else {
                         self.logger.debug(
                             "Before instruction {any}: invalid register operands",
-                            .{inst},
+                            .{decoded_inst},
                             metadata,
                         );
                     }
@@ -208,22 +230,22 @@ pub const VM = struct {
                 .STORE, .LOAD_MEM => {
                     self.logger.debug(
                         "Before instruction {any}: memory address={d}",
-                        .{ inst, inst.operand1 },
+                        .{ decoded_inst, decoded_inst.operand1 },
                         metadata,
                     );
                 },
                 .MEMCPY => {
                     self.logger.debug(
                         "Before instruction {any}: dest={d}, src={d}, len={d}",
-                        .{ inst, inst.dest_reg, inst.operand1, inst.operand2 },
+                        .{ decoded_inst, decoded_inst.dest_reg, decoded_inst.operand1, decoded_inst.operand2 },
                         metadata,
                     );
                 },
                 .PUSH => {
-                    if (inst.dest_reg < REGISTER_COUNT) {
+                    if (decoded_inst.dest_reg < REGISTER_COUNT) {
                         self.logger.debug(
                             "Before instruction {any}: R{d}={d}",
-                            .{ inst, inst.dest_reg, self.registers[inst.dest_reg] },
+                            .{ decoded_inst, decoded_inst.dest_reg, self.registers[decoded_inst.dest_reg] },
                             metadata,
                         );
                     }
@@ -231,30 +253,28 @@ pub const VM = struct {
                 .POP => {
                     self.logger.debug(
                         "Before instruction {any}: dest_reg={d}",
-                        .{ inst, inst.dest_reg },
+                        .{ decoded_inst, decoded_inst.dest_reg },
                         metadata,
                     );
                 },
                 else => {
                     self.logger.debug(
                         "Before instruction {any}",
-                        .{inst},
+                        .{decoded_inst},
                         metadata,
                     );
                 },
             }
         }
 
-        try decoder.decode(inst, self);
-
         if (self.debug_mode) {
             // Only log result for instructions that modify registers
-            if (inst.dest_reg < REGISTER_COUNT) {
-                switch (inst.opcode) {
+            if (decoded_inst.dest_reg < REGISTER_COUNT) {
+                switch (decoded_inst.opcode) {
                     .LOAD, .ADD, .SUB, .MUL, .DIV, .MOD, .LOAD_MEM, .POP => {
                         self.logger.debug(
                             "After instruction: R{d}={d}",
-                            .{ inst.dest_reg, self.registers[inst.dest_reg] },
+                            .{ decoded_inst.dest_reg, self.registers[decoded_inst.dest_reg] },
                             metadata,
                         );
                     },
