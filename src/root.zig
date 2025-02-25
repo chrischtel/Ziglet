@@ -16,7 +16,7 @@ pub const Error = error_mod.Error;
 pub const VMError = error_mod.VMError;
 pub const VMConfig = vm_mod.VMConfig;
 pub const createRuntimeError = error_mod.createRuntimeError;
-
+pub const debug = @import("debug/debug.zig");
 pub const Instruction = instruction_types.Instruction;
 pub const OpCode = instruction_types.OpCode;
 pub const REGISTER_COUNT = instruction_types.REGISTER_COUNT;
