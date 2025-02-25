@@ -9,6 +9,7 @@ const createRuntimeError = error_mod.createRuntimeError;
 const instruction_types = @import("../instruction/types.zig");
 const decoder = @import("../instruction/decoder.zig");
 const nexlog = @import("nexlog");
+const debug_system = @import("../debug/debug.zig");
 
 pub const Instruction = instruction_types.Instruction;
 pub const OpCode = instruction_types.OpCode;
@@ -19,6 +20,8 @@ pub const VMConfig = struct {
     memory_size: usize = 1024 * 64,
     debug_mode: bool = true,
     log_config: LogConfig = .{},
+    debug_config: ?debug_system.DebugConfig = null, // Add debug config
+
     pub const LogConfig = struct {
         min_level: nexlog.LogLevel = .debug,
         enable_colors: bool = true,
@@ -48,6 +51,7 @@ pub const VM = struct {
     instruction_cache: std.AutoHashMap(usize, Instruction),
     execution_count: std.AutoHashMap(usize, usize),
     logger: *nexlog.Logger,
+    debug: ?debug_system.DebugSystem = null,
 
     /// Initialize a new VM with custom configuration.
     pub fn initWithConfig(
@@ -97,6 +101,14 @@ pub const VM = struct {
         };
 
         const metadata = vm.createLogMetadata();
+
+        // Initialize debug system if configured
+        if (config.debug_config) |debug_cfg| {
+            vm.debug = debug_system.DebugSystem.init(allocator, debug_cfg) catch |err| {
+                logger.err("Failed to initialize debug system: {s}", .{@errorName(err)}, metadata);
+                return error.DebugSystemInitFailed;
+            };
+        }
         vm.logger.info("VM initialized with {d}KB memory", .{config.memory_size / 1024}, metadata);
         return vm;
     }
@@ -117,6 +129,8 @@ pub const VM = struct {
     }
 
     pub fn deinit(self: *VM) void {
+        if (self.debug) |*d| d.deinit();
+
         const metadata = self.createLogMetadata();
         self.logger.info("VM shutting down", .{}, metadata);
         self.allocator.free(self.memory);
@@ -146,13 +160,13 @@ pub const VM = struct {
         self.running = true;
         while (self.running and self.pc < self.program.len) {
             const current_inst = self.program[self.pc];
-            if (self.debug_mode) {
-                self.logInstructionExecution(current_inst);
-                self.logRegisterState();
-                self.logStackState();
-            }
+            if (self.debug) |*d| d.beginInstruction(self);
+
             try self.execution_count.put(self.pc, (self.execution_count.get(self.pc) orelse 0) + 1);
             try self.executeInstruction(current_inst);
+
+            if (self.debug) |*d| try d.endInstruction(self);
+
             self.pc += 1;
             if (self.pc % 1000 == 0) {
                 try self.optimizeHotPaths();
@@ -161,9 +175,16 @@ pub const VM = struct {
                 }
             }
         }
-        if (self.debug_mode) {
-            const debug_info = self.getDebugInfo();
-            self.logger.debug("Final VM state:\n{}", .{debug_info}, self.createLogMetadata());
+
+        if (self.debug) |*d| {
+            if (d.config.auto_save_trace) try d.saveTraceToFile();
+            if (d.config.auto_save_profile) try d.saveProfileToFile();
+        }
+    }
+
+    pub fn recordMemoryAccess(self: *VM, address: usize, is_write: bool, size: u8, value: u32) !void {
+        if (self.debug) |*d| {
+            try d.recordMemoryAccess(address, is_write, size, value);
         }
     }
 
