@@ -204,24 +204,51 @@ pub const Instructions = struct {
     }
 
     /// STORE – Store value from register to memory.
-    pub fn store(vm: *VM, reg: u8, address: u32) VMError!void {
+    pub fn store(self: *VM, reg: u8, address: u32) !void {
         try validateRegister(reg);
-        if (address >= vm.memory_size - 3) {
+        if (address >= self.memory_size - 3) {
             return createRuntimeError(error.MemoryAccessViolation, "store operation", "Memory address out of bounds", "Use an address within memory bounds");
         }
-        const value = vm.registers[reg];
-        @memcpy(vm.memory[address..][0..4], std.mem.asBytes(&value));
+        const value = self.registers[reg];
+        @memcpy(self.memory[address..][0..4], std.mem.asBytes(&value));
+        try self.recordMemoryAccess(address, true, 4, value);
     }
 
     /// LOAD_MEM – Load a value from memory to register.
-    pub fn loadMem(vm: *VM, reg: u8, address: u32) VMError!void {
+    pub fn loadMem(self: *VM, reg: u8, address: u32) !void {
         try validateRegister(reg);
-        if (address >= vm.memory_size - 3) {
+        if (address >= self.memory_size - 3) {
             return createRuntimeError(error.MemoryAccessViolation, "load operation", "Memory address out of bounds", "Use an address within memory bounds");
         }
         var value: u32 = undefined;
-        @memcpy(std.mem.asBytes(&value), vm.memory[address..][0..4]);
-        vm.registers[reg] = value;
+        @memcpy(std.mem.asBytes(&value), self.memory[address..][0..4]);
+        self.registers[reg] = value;
+        try self.recordMemoryAccess(address, false, 4, value);
+    }
+
+    // Add a debugger-friendly state dump method
+    pub fn dumpState(self: *VM) ![]u8 {
+        if (self.debug) |*d| {
+            return d.visualizeState(self);
+        } else {
+            // Fallback to basic debug info
+            var buffer = std.ArrayList(u8).init(self.allocator);
+            errdefer buffer.deinit();
+
+            try buffer.writer().print("{}", .{self.getDebugInfo()});
+            return buffer.toOwnedSlice();
+        }
+    }
+
+    // Add method to handle debug breakpoints (optional feature)
+    pub fn checkBreakpoint(self: *VM) bool {
+        if (self.debug == null or !self.debug.?.config.enabled) {
+            return false;
+        }
+
+        // Implementation depends on how you want to handle breakpoints
+        // Could check a hashmap of addresses in the debug system
+        return false;
     }
 
     /// CALL address – Call subroutine.
