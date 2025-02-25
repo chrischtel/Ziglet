@@ -18,7 +18,6 @@ pub fn decode(
         .HALT => return,
 
         .LOAD => {
-            std.debug.print("LOAD R{}, {}\n", .{ instruction.dest_reg, instruction.operand1 });
             try Instructions.load(
                 registers,
                 instruction.dest_reg,
@@ -27,11 +26,6 @@ pub fn decode(
         },
 
         .ADD => {
-            std.debug.print("ADD R{}, R{}, R{}\n", .{
-                instruction.dest_reg,
-                instruction.operand1,
-                instruction.operand2,
-            });
             try Instructions.add(
                 registers,
                 instruction.dest_reg,
@@ -41,11 +35,6 @@ pub fn decode(
         },
 
         .SUB => {
-            std.debug.print("SUB R{}, R{}, R{}\n", .{
-                instruction.dest_reg,
-                instruction.operand1,
-                instruction.operand2,
-            });
             try Instructions.sub(
                 registers,
                 instruction.dest_reg,
@@ -55,11 +44,6 @@ pub fn decode(
         },
 
         .MUL => {
-            std.debug.print("MUL R{}, R{}, R{}\n", .{
-                instruction.dest_reg,
-                instruction.operand1,
-                instruction.operand2,
-            });
             try Instructions.mul(
                 registers,
                 instruction.dest_reg,
@@ -69,11 +53,6 @@ pub fn decode(
         },
 
         .DIV => {
-            std.debug.print("DIV R{}, R{}, R{}\n", .{
-                instruction.dest_reg,
-                instruction.operand1,
-                instruction.operand2,
-            });
             try Instructions.div(
                 registers,
                 instruction.dest_reg,
@@ -83,11 +62,6 @@ pub fn decode(
         },
 
         .MOD => {
-            std.debug.print("MOD R{}, R{}, R{}\n", .{
-                instruction.dest_reg,
-                instruction.operand1,
-                instruction.operand2,
-            });
             try Instructions.mod(
                 registers,
                 instruction.dest_reg,
@@ -97,10 +71,6 @@ pub fn decode(
         },
 
         .CMP => {
-            std.debug.print("CMP R{}, R{}\n", .{
-                instruction.operand1,
-                instruction.operand2,
-            });
             try Instructions.cmp(
                 registers,
                 vm,
@@ -109,38 +79,19 @@ pub fn decode(
             );
         },
 
-        .JMP => {
-            std.debug.print("JMP {}\n", .{instruction.operand1});
-            try Instructions.jmp(vm, instruction.operand1);
-        },
+        .JMP => try Instructions.jmp(vm, instruction.operand1),
 
-        .JEQ => {
-            std.debug.print("JEQ {}\n", .{instruction.operand1});
-            try Instructions.jeq(vm, instruction.operand1);
-        },
+        .JEQ => try Instructions.jeq(vm, instruction.operand1),
 
-        .JNE => {
-            std.debug.print("JNE {}\n", .{instruction.operand1});
-            try Instructions.jne(vm, instruction.operand1);
-        },
+        .JNE => try Instructions.jne(vm, instruction.operand1),
 
-        .JGT => {
-            std.debug.print("JGT {}\n", .{instruction.operand1});
-            try Instructions.jgt(vm, instruction.operand1);
-        },
+        .JGT => try Instructions.jgt(vm, instruction.operand1),
 
-        .JLT => {
-            std.debug.print("JLT {}\n", .{instruction.operand1});
-            try Instructions.jlt(vm, instruction.operand1);
-        },
+        .JLT => try Instructions.jlt(vm, instruction.operand1),
 
-        .JGE => {
-            std.debug.print("JGE {}\n", .{instruction.operand1});
-            try Instructions.jge(vm, instruction.operand1);
-        },
+        .JGE => try Instructions.jge(vm, instruction.operand1),
 
         .PUSH => {
-            std.debug.print("PUSH R{}\n", .{instruction.dest_reg});
             try Instructions.push(
                 registers,
                 vm,
@@ -149,7 +100,6 @@ pub fn decode(
         },
 
         .POP => {
-            std.debug.print("POP R{}\n", .{instruction.dest_reg});
             try Instructions.pop(
                 registers,
                 vm,
@@ -158,10 +108,6 @@ pub fn decode(
         },
 
         .STORE => {
-            std.debug.print("STORE R{}, {}\n", .{
-                instruction.dest_reg,
-                instruction.operand1,
-            });
             try Instructions.store(
                 vm,
                 instruction.dest_reg,
@@ -170,10 +116,6 @@ pub fn decode(
         },
 
         .LOAD_MEM => {
-            std.debug.print("LOAD_MEM R{}, {}\n", .{
-                instruction.dest_reg,
-                instruction.operand1,
-            });
             try Instructions.loadMem(
                 vm,
                 instruction.dest_reg,
@@ -182,11 +124,6 @@ pub fn decode(
         },
 
         .MEMCPY => {
-            std.debug.print("MEMCPY {}, {}, {}\n", .{
-                instruction.dest_reg,
-                instruction.operand1,
-                instruction.operand2,
-            });
             try Instructions.memcpy(
                 vm,
                 instruction.dest_reg,
