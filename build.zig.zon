@@ -1,5 +1,6 @@
 .{
-    .name = "Ziglet",
+    .name = .ziglet,
+    .fingerprint = 0x27874d01c1f96faf,
     .version = "0.0.0",
 
     .dependencies = .{
