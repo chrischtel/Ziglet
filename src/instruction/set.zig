@@ -141,14 +141,15 @@ pub const Instructions = struct {
     /// JMP – Unconditional jump.
     pub fn jmp(vm: *VM, target: u32) VMError!void {
         try validateJumpTarget(vm, target);
-        vm.pc = target - 1; // Adjust for pc increment.
+        // Handle underflow: if target is 0, set PC to max value so it becomes 0 after increment
+        vm.pc = if (target == 0) std.math.maxInt(usize) else target - 1;
     }
 
     /// JEQ – Jump if equal (cmp_flag == 0).
     pub fn jeq(vm: *VM, target: u32) VMError!void {
         try validateJumpTarget(vm, target);
         if (vm.cmp_flag == 0) {
-            vm.pc = target - 1;
+            vm.pc = if (target == 0) std.math.maxInt(usize) else target - 1;
         }
     }
 
@@ -156,7 +157,7 @@ pub const Instructions = struct {
     pub fn jne(vm: *VM, target: u32) VMError!void {
         try validateJumpTarget(vm, target);
         if (vm.cmp_flag != 0) {
-            vm.pc = target - 1;
+            vm.pc = if (target == 0) std.math.maxInt(usize) else target - 1;
         }
     }
 
@@ -164,7 +165,7 @@ pub const Instructions = struct {
     pub fn jgt(vm: *VM, target: u32) VMError!void {
         try validateJumpTarget(vm, target);
         if (vm.cmp_flag > 0) {
-            vm.pc = target - 1;
+            vm.pc = if (target == 0) std.math.maxInt(usize) else target - 1;
         }
     }
 
@@ -172,7 +173,7 @@ pub const Instructions = struct {
     pub fn jlt(vm: *VM, target: u32) VMError!void {
         try validateJumpTarget(vm, target);
         if (vm.cmp_flag < 0) {
-            vm.pc = target - 1;
+            vm.pc = if (target == 0) std.math.maxInt(usize) else target - 1;
         }
     }
 
@@ -180,7 +181,7 @@ pub const Instructions = struct {
     pub fn jge(vm: *VM, target: u32) VMError!void {
         try validateJumpTarget(vm, target);
         if (vm.cmp_flag >= 0) {
-            vm.pc = target - 1;
+            vm.pc = if (target == 0) std.math.maxInt(usize) else target - 1;
         }
     }
 
@@ -298,7 +299,7 @@ pub const Instructions = struct {
     pub fn call(vm: *VM, address: u32) VMError!void {
         try validateJumpTarget(vm, address);
         try vm.stack.append(@intCast(vm.pc + 1)); // Save return address.
-        vm.pc = address - 1;
+        vm.pc = if (address == 0) std.math.maxInt(usize) else address - 1;
     }
 
     /// RET – Return from subroutine.
@@ -306,6 +307,8 @@ pub const Instructions = struct {
         if (vm.stack.items.len == 0) {
             return createRuntimeError(error.InvalidInstruction, "return operation", "Stack is empty, no return address", "Ensure CALL before RET");
         }
-        vm.pc = vm.stack.pop() orelse unreachable;
+        const return_address = vm.stack.pop() orelse unreachable;
+        // RET doesn't need the -1 adjustment since return_address is already correct
+        vm.pc = return_address - 1; // But we still need -1 because of the +1 in execute loop
     }
 };
