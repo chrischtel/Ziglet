@@ -197,10 +197,47 @@ pub const Instructions = struct {
 
     /// MEMCPY – Copy a memory region.
     pub fn memcpy(vm: *VM, dest: u32, src: u32, len: u32) VMError!void {
-        if (dest >= vm.memory_size or src >= vm.memory_size or dest + len > vm.memory_size or src + len > vm.memory_size) {
+        // Check for zero length copy (valid but no-op)
+        if (len == 0) return;
+
+        // Bounds checking with overflow protection
+        if (dest >= vm.memory_size or src >= vm.memory_size) {
+            return createRuntimeError(error.MemoryAccessViolation, "memory copy operation", "Source or destination address out of bounds", "Ensure addresses are within memory bounds");
+        }
+
+        // Check for overflow in end address calculations
+        const dest_end = dest + len;
+        const src_end = src + len;
+        if (dest_end < dest or src_end < src) { // Overflow detection
+            return createRuntimeError(error.MemoryAccessViolation, "memory copy operation", "Memory region size causes address overflow", "Use smaller copy length to avoid overflow");
+        }
+
+        if (dest_end > vm.memory_size or src_end > vm.memory_size) {
             return createRuntimeError(error.MemoryAccessViolation, "memory copy operation", "Memory access out of bounds", "Ensure addresses and length are within bounds");
         }
-        @memcpy(vm.memory[dest..][0..len], vm.memory[src..][0..len]);
+
+        // Check for overlapping regions and handle appropriately
+        if ((dest < src_end) and (src < dest_end)) {
+            // Overlapping regions - use memmove semantics
+            // Zig's @memcpy is undefined for overlapping regions, so we implement safe copy
+            if (dest < src) {
+                // Copy forward
+                var i: u32 = 0;
+                while (i < len) : (i += 1) {
+                    vm.memory[dest + i] = vm.memory[src + i];
+                }
+            } else {
+                // Copy backward
+                var i = len;
+                while (i > 0) {
+                    i -= 1;
+                    vm.memory[dest + i] = vm.memory[src + i];
+                }
+            }
+        } else {
+            // Non-overlapping regions - safe to use @memcpy
+            @memcpy(vm.memory[dest..][0..len], vm.memory[src..][0..len]);
+        }
     }
 
     /// STORE – Store value from register to memory.
