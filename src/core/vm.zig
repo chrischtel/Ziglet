@@ -162,6 +162,7 @@ pub const VM = struct {
             const current_inst = self.program[self.pc];
             if (self.debug) |*d| d.beginInstruction(self);
 
+            // Only increment execution count here, not in executeInstruction
             try self.execution_count.put(self.pc, (self.execution_count.get(self.pc) orelse 0) + 1);
             try self.executeInstruction(current_inst);
 
@@ -201,7 +202,6 @@ pub const VM = struct {
             }
         } else {
             decoded_inst = inst;
-            try decoder.decode(decoded_inst, self); // Decode only if not cached
             if (self.debug_mode) {
                 self.logInstructionExecution(decoded_inst);
                 self.logRegisterState();
@@ -215,7 +215,8 @@ pub const VM = struct {
             return;
         }
 
-        try self.execution_count.put(self.pc, (self.execution_count.get(self.pc) orelse 0) + 1);
+        // Execute the instruction regardless of whether it's cached or not
+        try decoder.decode(decoded_inst, self);
 
         // Log before execution (using decoded_inst)
         if (self.debug_mode) {
