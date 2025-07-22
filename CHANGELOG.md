@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [unreleased]
+## [0.2.2] - 2025-07-22
 
 ### 🐛 Bug Fixes
 
@@ -10,6 +10,10 @@ All notable changes to this project will be documented in this file.
 - Improve MEMCPY bounds checking and handle overlapping memory regions
 - Prevent integer underflow in STORE/LOAD_MEM bounds checking
 - Prevent integer underflow in jump instructions for target address 0
+
+### ⚙️ Miscellaneous Tasks
+
+- *(repo)* Add git-cliff for changelog generation
 
 ## [0.1.0] - 2025-02-15
 
