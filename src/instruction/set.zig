@@ -243,9 +243,12 @@ pub const Instructions = struct {
     /// STORE – Store value from register to memory.
     pub fn store(self: *VM, reg: u8, address: u32) !void {
         try validateRegister(reg);
-        if (address >= self.memory_size - 3) {
+
+        // Check for overflow-safe bounds: need 4 bytes for u32
+        if (self.memory_size < 4 or address > self.memory_size - 4) {
             return createRuntimeError(error.MemoryAccessViolation, "store operation", "Memory address out of bounds", "Use an address within memory bounds");
         }
+
         const value = self.registers[reg];
         @memcpy(self.memory[address..][0..4], std.mem.asBytes(&value));
         try self.recordMemoryAccess(address, true, 4, value);
@@ -254,9 +257,12 @@ pub const Instructions = struct {
     /// LOAD_MEM – Load a value from memory to register.
     pub fn loadMem(self: *VM, reg: u8, address: u32) !void {
         try validateRegister(reg);
-        if (address >= self.memory_size - 3) {
+
+        // Check for overflow-safe bounds: need 4 bytes for u32
+        if (self.memory_size < 4 or address > self.memory_size - 4) {
             return createRuntimeError(error.MemoryAccessViolation, "load operation", "Memory address out of bounds", "Use an address within memory bounds");
         }
+
         var value: u32 = undefined;
         @memcpy(std.mem.asBytes(&value), self.memory[address..][0..4]);
         self.registers[reg] = value;
